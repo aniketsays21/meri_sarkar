@@ -65,32 +65,32 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="mobile-container min-h-screen bg-background pb-20">
-      {/* Simple Header */}
-      <div className="bg-primary p-6">
+    <div className="mobile-container min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 pb-20">
+      {/* Header */}
+      <div className="gradient-hero p-6 pb-8 rounded-b-[2rem] shadow-card-hover">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold text-primary-foreground">
+            <h1 className="text-2xl font-display font-bold text-white">
               Meri Sarkar
             </h1>
-            <div className="flex items-center gap-1 text-primary-foreground/80 text-sm mt-1">
+            <div className="flex items-center gap-1 text-white/80 text-sm mt-1">
               <MapPin className="w-4 h-4" />
               <span>Mumbai North - 400053</span>
             </div>
           </div>
-          <button className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
-            <Bell className="w-5 h-5 text-primary-foreground" />
+          <button className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center transition-smooth hover:bg-white/30">
+            <Bell className="w-5 h-5 text-white" />
           </button>
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-4">
+      <div className="px-4 py-6 space-y-5">
         {/* 1. My Leader Report - Overall Score */}
-        <Card className="overflow-hidden shadow-card hover:shadow-card-hover transition-smooth">
+        <Card className="overflow-hidden shadow-card hover:shadow-card-hover transition-smooth rounded-2xl border-0">
           <CardContent className="p-0">
-            <div className="gradient-primary p-6 text-primary-foreground">
+            <div className="gradient-primary p-6 text-white">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-bold">My Leader Report</h2>
+                <h2 className="text-lg font-display font-bold">My Leader Report</h2>
                 <ChevronRight className="w-5 h-5" />
               </div>
               <p className="text-sm opacity-90">Overall Performance Score</p>
@@ -145,10 +145,10 @@ const Dashboard = () => {
         </Card>
 
         {/* 2. My Area Report - Multiple Metrics */}
-        <Card className="shadow-card hover:shadow-card-hover transition-smooth">
+        <Card className="shadow-card hover:shadow-card-hover transition-smooth rounded-2xl border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-bold">My Area Report</h2>
+              <h2 className="text-lg font-display font-bold">My Area Report</h2>
               <div className="flex items-center gap-1 text-accent">
                 <TrendingUp className="w-4 h-4" />
                 <span className="text-sm font-bold">75</span>
@@ -179,10 +179,10 @@ const Dashboard = () => {
         </Card>
 
         {/* 3. Your Policy Impact */}
-        <Card className="shadow-card hover:shadow-card-hover transition-smooth">
+        <Card className="shadow-card hover:shadow-card-hover transition-smooth rounded-2xl border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-bold">Your Policy Impact</h2>
+              <h2 className="text-lg font-display font-bold">Your Policy Impact</h2>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
             
@@ -225,17 +225,17 @@ const Dashboard = () => {
         </Card>
 
         {/* 4. Track State Leader */}
-        <Card className="shadow-card hover:shadow-card-hover transition-smooth">
+        <Card className="shadow-card hover:shadow-card-hover transition-smooth rounded-2xl border-0">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-bold">Track State Leader</h2>
+              <h2 className="text-lg font-display font-bold">Track State Leader</h2>
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </div>
             <p className="text-sm text-muted-foreground mb-4">What your Chief Minister is doing</p>
             
-            <div className="flex items-center gap-3 mb-5 p-3 rounded-lg bg-muted/30">
-              <div className="w-12 h-12 rounded-full gradient-secondary flex items-center justify-center">
-                <Users className="w-6 h-6 text-secondary-foreground" />
+            <div className="flex items-center gap-3 mb-5 p-4 rounded-2xl bg-gradient-to-br from-secondary/10 to-secondary/5 border border-secondary/20">
+              <div className="w-12 h-12 rounded-full gradient-secondary flex items-center justify-center shadow-card">
+                <Users className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h3 className="font-bold">Devendra Fadnavis</h3>
@@ -267,8 +267,8 @@ const Dashboard = () => {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg">
-        <div className="flex items-center justify-around h-16">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg backdrop-blur-sm">
+        <div className="flex items-center justify-around h-16 max-w-[430px] mx-auto">
           {[
             { id: "home", icon: Home, label: "Home" },
             { id: "leaders", icon: Users, label: "Leaders" },
