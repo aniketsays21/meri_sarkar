@@ -50,6 +50,7 @@ export type Database = {
           attendance: number | null
           bills_passed: number | null
           bio: string | null
+          completed_projects: Json | null
           constituency: string | null
           constituency_id: string | null
           created_at: string | null
@@ -57,14 +58,22 @@ export type Database = {
           current_work: string | null
           designation: string
           education: string | null
+          election_history: Json | null
           funds_utilized: number | null
           hierarchy_level: number
           id: string
           image_url: string | null
           name: string
+          office_address: string | null
+          office_email: string | null
+          office_phone: string | null
+          ongoing_projects: Json | null
           party: string | null
+          professional_history: Json | null
           questions_raised: number | null
+          social_media: Json | null
           state: string | null
+          total_funds_allocated: number | null
           updated_at: string | null
         }
         Insert: {
@@ -72,6 +81,7 @@ export type Database = {
           attendance?: number | null
           bills_passed?: number | null
           bio?: string | null
+          completed_projects?: Json | null
           constituency?: string | null
           constituency_id?: string | null
           created_at?: string | null
@@ -79,14 +89,22 @@ export type Database = {
           current_work?: string | null
           designation: string
           education?: string | null
+          election_history?: Json | null
           funds_utilized?: number | null
           hierarchy_level?: number
           id?: string
           image_url?: string | null
           name: string
+          office_address?: string | null
+          office_email?: string | null
+          office_phone?: string | null
+          ongoing_projects?: Json | null
           party?: string | null
+          professional_history?: Json | null
           questions_raised?: number | null
+          social_media?: Json | null
           state?: string | null
+          total_funds_allocated?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -94,6 +112,7 @@ export type Database = {
           attendance?: number | null
           bills_passed?: number | null
           bio?: string | null
+          completed_projects?: Json | null
           constituency?: string | null
           constituency_id?: string | null
           created_at?: string | null
@@ -101,14 +120,22 @@ export type Database = {
           current_work?: string | null
           designation?: string
           education?: string | null
+          election_history?: Json | null
           funds_utilized?: number | null
           hierarchy_level?: number
           id?: string
           image_url?: string | null
           name?: string
+          office_address?: string | null
+          office_email?: string | null
+          office_phone?: string | null
+          ongoing_projects?: Json | null
           party?: string | null
+          professional_history?: Json | null
           questions_raised?: number | null
+          social_media?: Json | null
           state?: string | null
+          total_funds_allocated?: number | null
           updated_at?: string | null
         }
         Relationships: [
