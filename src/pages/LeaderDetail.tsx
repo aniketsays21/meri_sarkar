@@ -293,33 +293,35 @@ const LeaderDetail = () => {
       {/* Professional History */}
       {leader.professional_history && Array.isArray(leader.professional_history) && leader.professional_history.length > 0 && (
         <div className="px-6 mb-6">
-          <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
-            <Briefcase className="w-5 h-5" />
+          <h2 className="text-lg font-display font-bold mb-4 flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-primary" />
             Professional History
           </h2>
           <div className="relative">
             {/* Timeline line */}
-            <div className="absolute left-[1.125rem] top-4 bottom-4 w-0.5 bg-border" />
+            <div className="absolute left-[0.875rem] top-2 bottom-2 w-0.5 bg-border" />
             
             <div className="space-y-6">
               {leader.professional_history.map((position: any, index: number) => (
-                <div key={index} className="relative pl-12">
+                <div key={index} className="relative pl-10">
                   {/* Timeline dot */}
-                  <div className="absolute left-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-                    <div className="w-3 h-3 rounded-full bg-white" />
+                  <div className="absolute left-0 top-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-white" />
                   </div>
                   
-                  <Card className="p-4 shadow-card">
-                    <h3 className="font-bold text-base mb-1">{position.designation || position.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
+                  <div>
+                    <h3 className="font-bold text-base mb-1.5 leading-tight">
+                      {position.designation || position.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-2.5">
                       {position.government || position.organization}
                     </p>
-                    <div className="inline-block px-3 py-1 rounded-full bg-primary/10">
-                      <p className="text-xs font-medium text-primary">
+                    <div className="inline-block px-3 py-1.5 rounded-md bg-primary/10">
+                      <p className="text-sm font-semibold text-primary">
                         {position.start_year} - {position.end_year || "Present"}
                       </p>
                     </div>
-                  </Card>
+                  </div>
                 </div>
               ))}
             </div>
