@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leaders: {
+        Row: {
+          assets: number | null
+          attendance: number | null
+          bills_passed: number | null
+          bio: string | null
+          constituency: string | null
+          created_at: string | null
+          criminal_cases: number | null
+          current_work: string | null
+          designation: string
+          education: string | null
+          funds_utilized: number | null
+          id: string
+          image_url: string | null
+          name: string
+          party: string | null
+          questions_raised: number | null
+          state: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assets?: number | null
+          attendance?: number | null
+          bills_passed?: number | null
+          bio?: string | null
+          constituency?: string | null
+          created_at?: string | null
+          criminal_cases?: number | null
+          current_work?: string | null
+          designation: string
+          education?: string | null
+          funds_utilized?: number | null
+          id?: string
+          image_url?: string | null
+          name: string
+          party?: string | null
+          questions_raised?: number | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assets?: number | null
+          attendance?: number | null
+          bills_passed?: number | null
+          bio?: string | null
+          constituency?: string | null
+          created_at?: string | null
+          criminal_cases?: number | null
+          current_work?: string | null
+          designation?: string
+          education?: string | null
+          funds_utilized?: number | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          party?: string | null
+          questions_raised?: number | null
+          state?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age: number | null
+          constituency: string | null
+          created_at: string | null
+          gender: string | null
+          id: string
+          income: number | null
+          kids: number | null
+          marital_status: string | null
+          name: string
+          occupation: string | null
+          phone: string | null
+          pincode: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          constituency?: string | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          income?: number | null
+          kids?: number | null
+          marital_status?: string | null
+          name: string
+          occupation?: string | null
+          phone?: string | null
+          pincode?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          constituency?: string | null
+          created_at?: string | null
+          gender?: string | null
+          id?: string
+          income?: number | null
+          kids?: number | null
+          marital_status?: string | null
+          name?: string
+          occupation?: string | null
+          phone?: string | null
+          pincode?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
