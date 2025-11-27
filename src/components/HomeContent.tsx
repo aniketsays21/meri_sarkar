@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, User, Calculator, ArrowRight } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -106,9 +107,9 @@ export const HomeContent = () => {
 
   return (
     <div className="space-y-6">
-      {/* My Leader Report */}
+      {/* My Leaders */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">My Leader Report</h2>
+        <h2 className="text-lg font-semibold mb-4">My Leaders</h2>
         {mlaLeader && mlaLeader.length > 0 ? (
           <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
             {mlaLeader.map((leader: any) => (
@@ -125,7 +126,7 @@ export const HomeContent = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-base mb-1 truncate">{leader.name}</h3>
-                    <p className="text-sm text-muted-foreground truncate">{leader.designation}</p>
+                    <Badge variant="outline" className="text-xs mb-1">{leader.designation}</Badge>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
