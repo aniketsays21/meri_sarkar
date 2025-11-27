@@ -331,14 +331,14 @@ const LeaderDetail = () => {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
                           <h3 className="font-bold text-base mb-1.5 leading-tight">
-                            {position.designation || position.title}
+                            {position.position || position.designation || position.title}
                           </h3>
                           <p className="text-sm text-muted-foreground mb-2.5">
-                            {position.government || position.organization}
+                            {position.organization || position.government}
                           </p>
                           <div className="inline-block px-3 py-1.5 rounded-md bg-primary/10">
                             <p className="text-sm font-semibold text-primary">
-                              {position.start_year} - {position.end_year || "Present"}
+                              {position.year || `${position.start_year} - ${position.end_year || "Present"}`}
                             </p>
                           </div>
                         </div>
@@ -426,7 +426,7 @@ const LeaderDetail = () => {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-bold text-base mb-1.5">{edu.degree}</h3>
-                      <p className="text-sm text-foreground mb-2">{edu.university}</p>
+                      <p className="text-sm text-foreground mb-2">{edu.institution || edu.university}</p>
                       {(edu.field || edu.specialization) && (
                         <p className="text-xs text-muted-foreground mb-2">
                           {edu.field || edu.specialization}
@@ -434,7 +434,7 @@ const LeaderDetail = () => {
                       )}
                       <div className="inline-block px-3 py-1 rounded-md bg-primary/10">
                         <p className="text-xs font-semibold text-primary">
-                          {edu.start_year} - {edu.end_year || edu.year || "Completed"}
+                          {edu.year || `${edu.start_year} - ${edu.end_year || "Completed"}`}
                         </p>
                       </div>
                     </div>
@@ -490,18 +490,26 @@ const LeaderDetail = () => {
       {/* Ongoing Projects */}
       {leader.ongoing_projects && Array.isArray(leader.ongoing_projects) && leader.ongoing_projects.length > 0 && (
         <div className="px-6 mb-6">
-          <h2 className="text-lg font-display font-bold mb-3">Ongoing Projects</h2>
+          <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" />
+            Ongoing Projects
+          </h2>
           <div className="space-y-3">
             {leader.ongoing_projects.map((project: any, index: number) => (
               <Card key={index} className="p-4 shadow-card">
                 <div className="flex items-start gap-3 mb-3">
                   {getStatusIcon(project.progress)}
                   <div className="flex-1">
-                    <h3 className="font-semibold text-sm mb-1">{project.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{project.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Started: {new Date(project.start_date).toLocaleDateString()}
-                    </p>
+                    <h3 className="font-semibold text-base mb-1">{project.name || project.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{project.description}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {project.budget && (
+                        <span>Budget: {formatCurrency(project.budget)}</span>
+                      )}
+                      {(project.startDate || project.start_date) && (
+                        <span>Started: {new Date(project.startDate || project.start_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <Progress value={project.progress} className="h-2" />
@@ -517,18 +525,31 @@ const LeaderDetail = () => {
       {/* Completed Projects */}
       {leader.completed_projects && Array.isArray(leader.completed_projects) && leader.completed_projects.length > 0 && (
         <div className="px-6 mb-6">
-          <h2 className="text-lg font-display font-bold mb-3">Completed Projects</h2>
+          <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-score-excellent" />
+            Completed Projects
+          </h2>
           <div className="space-y-3">
             {leader.completed_projects.map((project: any, index: number) => (
               <Card key={index} className="p-4 shadow-card">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-score-excellent flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-sm mb-1">{project.title}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{project.description}</p>
-                    <p className="text-xs text-score-excellent">
-                      Completed: {new Date(project.completion_date).toLocaleDateString()}
-                    </p>
+                    <h3 className="font-semibold text-base mb-1">{project.name || project.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{project.description}</p>
+                    {project.impact && (
+                      <p className="text-sm text-foreground mb-2 italic">{project.impact}</p>
+                    )}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      {project.budget && (
+                        <span>Budget: {formatCurrency(project.budget)}</span>
+                      )}
+                      {(project.completedDate || project.completion_date) && (
+                        <span className="text-score-excellent">
+                          Completed: {new Date(project.completedDate || project.completion_date).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -562,32 +583,28 @@ const LeaderDetail = () => {
         </div>
       )}
 
-      {/* Background Info */}
-      <div className="px-6 mb-6">
-        <h2 className="text-lg font-display font-bold mb-3">Additional Information</h2>
-        <Card className="p-4 shadow-card">
-          <div className="grid grid-cols-2 gap-4">
-            {leader.assets && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Assets</p>
-                <p className="font-semibold">{formatCurrency(leader.assets)}</p>
-              </div>
-            )}
-            {leader.bills_passed !== null && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Bills Passed</p>
-                <p className="font-semibold">{leader.bills_passed}</p>
-              </div>
-            )}
-            {leader.current_work && (
-              <div className="col-span-2">
-                <p className="text-sm text-muted-foreground mb-1">Current Work</p>
-                <p className="text-sm">{leader.current_work}</p>
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+      {/* Additional Information */}
+      {(leader.bills_passed !== null || leader.current_work) && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3">Additional Information</h2>
+          <Card className="p-4 shadow-card">
+            <div className="grid grid-cols-2 gap-4">
+              {leader.bills_passed !== null && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Bills Passed</p>
+                  <p className="font-semibold">{leader.bills_passed}</p>
+                </div>
+              )}
+              {leader.current_work && (
+                <div className="col-span-2">
+                  <p className="text-sm text-muted-foreground mb-1">Current Work</p>
+                  <p className="text-sm">{leader.current_work}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="px-6 grid grid-cols-2 gap-3 mb-6">
