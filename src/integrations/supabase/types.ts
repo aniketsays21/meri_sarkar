@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      constituencies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          reserved_category: string | null
+          state: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          reserved_category?: string | null
+          state: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          reserved_category?: string | null
+          state?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leaders: {
         Row: {
           assets: number | null
@@ -21,12 +51,14 @@ export type Database = {
           bills_passed: number | null
           bio: string | null
           constituency: string | null
+          constituency_id: string | null
           created_at: string | null
           criminal_cases: number | null
           current_work: string | null
           designation: string
           education: string | null
           funds_utilized: number | null
+          hierarchy_level: number
           id: string
           image_url: string | null
           name: string
@@ -41,12 +73,14 @@ export type Database = {
           bills_passed?: number | null
           bio?: string | null
           constituency?: string | null
+          constituency_id?: string | null
           created_at?: string | null
           criminal_cases?: number | null
           current_work?: string | null
           designation: string
           education?: string | null
           funds_utilized?: number | null
+          hierarchy_level?: number
           id?: string
           image_url?: string | null
           name: string
@@ -61,12 +95,14 @@ export type Database = {
           bills_passed?: number | null
           bio?: string | null
           constituency?: string | null
+          constituency_id?: string | null
           created_at?: string | null
           criminal_cases?: number | null
           current_work?: string | null
           designation?: string
           education?: string | null
           funds_utilized?: number | null
+          hierarchy_level?: number
           id?: string
           image_url?: string | null
           name?: string
@@ -74,6 +110,47 @@ export type Database = {
           questions_raised?: number | null
           state?: string | null
           updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaders_constituency_id_fkey"
+            columns: ["constituency_id"]
+            isOneToOne: false
+            referencedRelation: "constituencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pincode_constituency: {
+        Row: {
+          assembly_constituency: string | null
+          created_at: string
+          district: string | null
+          id: string
+          parliamentary_constituency: string | null
+          pincode: string
+          state: string
+          ward: string | null
+        }
+        Insert: {
+          assembly_constituency?: string | null
+          created_at?: string
+          district?: string | null
+          id?: string
+          parliamentary_constituency?: string | null
+          pincode: string
+          state: string
+          ward?: string | null
+        }
+        Update: {
+          assembly_constituency?: string | null
+          created_at?: string
+          district?: string | null
+          id?: string
+          parliamentary_constituency?: string | null
+          pincode?: string
+          state?: string
+          ward?: string | null
         }
         Relationships: []
       }
