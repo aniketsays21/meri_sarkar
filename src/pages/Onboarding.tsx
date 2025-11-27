@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Vote, MapPin, Phone, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const Onboarding = () => {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [pincode, setPincode] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handlePhoneSubmit = () => {
     if (phone.length === 10) {
@@ -34,9 +37,54 @@ const Onboarding = () => {
     }
   };
 
-  const handlePincodeSubmit = () => {
-    if (pincode.length === 6) {
+  const handlePincodeSubmit = async () => {
+    if (pincode.length !== 6) return;
+    
+    setLoading(true);
+    try {
+      // For now, we'll create an anonymous user session
+      // In production, you'd use proper authentication with the phone/OTP
+      const { data: { user }, error: authError } = await supabase.auth.signInAnonymously();
+      
+      if (authError) {
+        toast.error("Failed to create session");
+        console.error("Auth error:", authError);
+        setLoading(false);
+        return;
+      }
+
+      if (!user) {
+        toast.error("No user created");
+        setLoading(false);
+        return;
+      }
+
+      // Save user profile to database
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          user_id: user.id,
+          name,
+          phone,
+          age: parseInt(age),
+          gender,
+          pincode,
+        });
+
+      if (profileError) {
+        toast.error("Failed to save profile");
+        console.error("Profile error:", profileError);
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Profile created successfully!");
       navigate("/dashboard");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -242,10 +290,10 @@ const Onboarding = () => {
 
               <Button
                 onClick={handlePincodeSubmit}
-                disabled={pincode.length !== 6}
+                disabled={pincode.length !== 6 || loading}
                 className="w-full h-14 text-lg rounded-2xl gradient-primary shadow-card-hover transition-smooth"
               >
-                Find My Leaders
+                {loading ? "Setting up..." : "Find My Leaders"}
               </Button>
             </div>
 
