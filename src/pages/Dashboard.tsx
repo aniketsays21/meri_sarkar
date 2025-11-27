@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import FloatingChatbot from "@/components/FloatingChatbot";
 import {
   Vote,
   ChevronRight,
@@ -288,6 +289,9 @@ const Dashboard = () => {
           ))}
         </div>
       </div>
+
+      {/* Floating AI Chatbot */}
+      <FloatingChatbot />
     </div>
   );
 };
