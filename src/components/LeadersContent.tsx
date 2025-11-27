@@ -2,8 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import LeaderCard from "./LeaderCard";
-import { Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { Input } from "./ui/input";
 
 interface Leader {
   id: string;
@@ -21,6 +22,7 @@ export const LeadersContent = () => {
   const navigate = useNavigate();
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [locationInfo, setLocationInfo] = useState<{
     ward?: string;
     assembly_constituency?: string;
@@ -85,6 +87,17 @@ export const LeadersContent = () => {
     return Math.round((attendance + funds + questions) / 3);
   };
 
+  const filteredLeaders = leaders.filter(leader =>
+    leader.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    leader.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    leader.party?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getHierarchyLabel = (index: number) => {
+    const labels = ["State Level", "National Level", "Assembly Level", "Local Level"];
+    return labels[index] || `Level ${index + 1}`;
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -106,19 +119,20 @@ export const LeadersContent = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Know Your Neta</h2>
-        <p className="text-sm text-gray-600 mb-3">
-          Your political hierarchy from local to state level leaders
-        </p>
-        <div className="flex items-center gap-2 text-xs text-indigo-600 font-medium">
-          <span>👇</span>
-          <span>Top to Bottom: State → National → Local</span>
-        </div>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search leaders by name, position, or party..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
-      <div className="space-y-4">
-        {leaders.map((leader, index) => {
+      <div className="space-y-6">
+        {filteredLeaders.map((leader, index) => {
           const numericId = parseInt(leader.id) || 0;
           const formattedLeader = {
             id: numericId,
@@ -135,9 +149,24 @@ export const LeadersContent = () => {
 
           return (
             <div key={leader.id} className="relative">
+              {/* Hierarchy Label */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">{index + 1}</span>
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {getHierarchyLabel(index)}
+                  </span>
+                </div>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Connecting Line */}
               {index > 0 && (
-                <div className="absolute left-1/2 -translate-x-1/2 -top-4 w-0.5 h-4 bg-gradient-to-b from-indigo-200 to-transparent" />
+                <div className="absolute left-4 -top-6 w-px h-6 bg-gradient-to-b from-primary/30 to-transparent" />
               )}
+
               <LeaderCard
                 leader={formattedLeader}
                 onClick={() => navigate(`/leader/${leader.id}`)}

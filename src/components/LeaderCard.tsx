@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, DollarSign, MessageCircle } from "lucide-react";
+import { Users, DollarSign } from "lucide-react";
 
 interface Leader {
   id: number;
@@ -74,7 +74,7 @@ const LeaderCard = ({ leader, onClick }: LeaderCardProps) => {
       </div>
 
       {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
             <Users className="w-4 h-4 text-primary" />
@@ -93,18 +93,6 @@ const LeaderCard = ({ leader, onClick }: LeaderCardProps) => {
             <p className="text-xs text-muted-foreground">Funds Used</p>
             <p className="font-display font-bold text-sm">
               {leader.fundsUtilized}%
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
-            <MessageCircle className="w-4 h-4 text-secondary" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Questions</p>
-            <p className="font-display font-bold text-sm">
-              {leader.questionsRaised}
             </p>
           </div>
         </div>
