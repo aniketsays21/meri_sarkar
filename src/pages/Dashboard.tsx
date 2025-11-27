@@ -21,6 +21,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
+  const [userPincode, setUserPincode] = useState("");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -30,12 +31,13 @@ const Dashboard = () => {
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('name')
+            .select('name, pincode')
             .eq('user_id', user.id)
             .single();
           
           if (profile) {
             setUserName(profile.name);
+            setUserPincode(profile.pincode || "400053");
           }
         }
       } catch (error) {
@@ -87,7 +89,7 @@ const Dashboard = () => {
             </h1>
             <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
               <MapPin className="w-4 h-4" />
-              <span>Mumbai North - 400053</span>
+              <span>Mumbai North - {userPincode}</span>
             </div>
           </div>
           <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
