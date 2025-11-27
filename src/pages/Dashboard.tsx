@@ -5,17 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Bell,
   Home,
-  BarChart3,
-  MessageSquare,
-  User,
   Users,
   MapPin,
+  Vote,
+  Newspaper,
 } from "lucide-react";
 import { HomeContent } from "@/components/HomeContent";
 import { LeadersContent } from "@/components/LeadersContent";
-import { CommunityContent } from "@/components/CommunityContent";
-import { StatsContent } from "@/components/StatsContent";
-import { ProfileContent } from "@/components/ProfileContent";
+import { PollContent } from "@/components/PollContent";
+import { NewsContent } from "@/components/NewsContent";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("home");
@@ -100,9 +98,31 @@ const Dashboard = () => {
         <div className="p-5">
           {activeTab === "home" && <HomeContent />}
           {activeTab === "leaders" && <LeadersContent />}
-          {activeTab === "community" && <CommunityContent />}
-          {activeTab === "stats" && <StatsContent />}
-          {activeTab === "profile" && <ProfileContent />}
+          {activeTab === "poll" && <PollContent />}
+          {activeTab === "news" && <NewsContent />}
+        </div>
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg backdrop-blur-sm">
+        <div className="flex items-center justify-around h-16 max-w-[430px] mx-auto">
+          {[
+            { id: "home", icon: Home, label: "Home" },
+            { id: "leaders", icon: Users, label: "Leaders" },
+            { id: "poll", icon: Vote, label: "Poll" },
+            { id: "news", icon: Newspaper, label: "News" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center gap-1 transition-smooth ${
+                activeTab === tab.id ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <tab.icon className="w-5 h-5" />
+              <span className="text-xs font-medium">{tab.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

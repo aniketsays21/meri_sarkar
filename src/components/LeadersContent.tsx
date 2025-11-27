@@ -1,72 +1,75 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import LeaderCard from "./LeaderCard";
-import { Crown, Building2, Users, Home } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Skeleton } from "./ui/skeleton";
 
-const mockLeaders = [
-  {
-    id: 1,
-    name: "Thaawarchand Gehlot",
-    position: "Governor",
-    party: "BJP",
-    constituency: "Karnataka",
-    image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400",
-    score: 85,
-    attendance: 95,
-    fundsUtilized: 88,
-    questionsRaised: 0,
-  },
-  {
-    id: 2,
-    name: "Siddaramaiah",
-    position: "Chief Minister",
-    party: "INC",
-    constituency: "Karnataka",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400",
-    score: 78,
-    attendance: 92,
-    fundsUtilized: 85,
-    questionsRaised: 45,
-  },
-  {
-    id: 3,
-    name: "Tejasvi Surya",
-    position: "Member of Parliament",
-    party: "BJP",
-    constituency: "Bengaluru South",
-    image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400",
-    score: 72,
-    attendance: 88,
-    fundsUtilized: 78,
-    questionsRaised: 156,
-  },
-  {
-    id: 4,
-    name: "Ramalinga Reddy",
-    position: "Member of Legislative Assembly",
-    party: "INC",
-    constituency: "BTM Layout",
-    image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400",
-    score: 75,
-    attendance: 85,
-    fundsUtilized: 82,
-    questionsRaised: 89,
-  },
-  {
-    id: 5,
-    name: "Lakshmi Devi",
-    position: "Ward Councillor",
-    party: "INC",
-    constituency: "Ward 143",
-    image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400",
-    score: 80,
-    attendance: 90,
-    fundsUtilized: 85,
-    questionsRaised: 34,
-  },
-];
+interface Leader {
+  id: string;
+  name: string;
+  designation: string;
+  party: string | null;
+  constituency: string | null;
+  image_url: string | null;
+  attendance: number | null;
+  funds_utilized: number | null;
+  questions_raised: number | null;
+}
 
 export const LeadersContent = () => {
   const navigate = useNavigate();
+  const [leaders, setLeaders] = useState<Leader[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchLeaders();
+  }, []);
+
+  const fetchLeaders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("leaders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        setLeaders(data as Leader[]);
+      }
+    } catch (error) {
+      console.error("Error fetching leaders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateScore = (leader: Leader) => {
+    const attendance = leader.attendance || 0;
+    const funds = leader.funds_utilized || 0;
+    const questions = Math.min((leader.questions_raised || 0) / 10, 100);
+    return Math.round((attendance + funds + questions) / 3);
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (leaders.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-8 border border-gray-100 text-center">
+        <p className="text-gray-600">No leaders found. Add leaders from your backend.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -78,17 +81,33 @@ export const LeadersContent = () => {
       </div>
 
       <div className="space-y-4">
-        {mockLeaders.map((leader, index) => (
-          <div key={leader.id} className="relative">
-            {index > 0 && (
-              <div className="absolute left-1/2 -translate-x-1/2 -top-4 w-0.5 h-4 bg-gradient-to-b from-indigo-200 to-transparent" />
-            )}
-            <LeaderCard
-              leader={leader}
-              onClick={() => navigate(`/leader/${leader.id}`)}
-            />
-          </div>
-        ))}
+        {leaders.map((leader, index) => {
+          const numericId = parseInt(leader.id) || 0;
+          const formattedLeader = {
+            id: numericId,
+            name: leader.name,
+            position: leader.designation,
+            party: leader.party || "Independent",
+            constituency: leader.constituency || "Unknown",
+            image: leader.image_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400",
+            score: calculateScore(leader),
+            attendance: leader.attendance || 0,
+            fundsUtilized: leader.funds_utilized || 0,
+            questionsRaised: leader.questions_raised || 0,
+          };
+
+          return (
+            <div key={leader.id} className="relative">
+              {index > 0 && (
+                <div className="absolute left-1/2 -translate-x-1/2 -top-4 w-0.5 h-4 bg-gradient-to-b from-indigo-200 to-transparent" />
+              )}
+              <LeaderCard
+                leader={formattedLeader}
+                onClick={() => navigate(`/leader/${leader.id}`)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       <div className="bg-white rounded-xl p-6 border border-gray-100 text-center">
