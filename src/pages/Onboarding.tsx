@@ -17,6 +17,7 @@ const Onboarding = () => {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [pincode, setPincode] = useState("");
+  const [occupation, setOccupation] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handlePhoneSubmit = () => {
@@ -34,6 +35,12 @@ const Onboarding = () => {
   const handleDetailsSubmit = () => {
     if (name && age && gender) {
       setStep(4);
+    }
+  };
+
+  const handleOccupationSubmit = () => {
+    if (occupation) {
+      setStep(5);
     }
   };
 
@@ -69,6 +76,7 @@ const Onboarding = () => {
           age: parseInt(age),
           gender,
           pincode,
+          occupation,
         });
 
       if (profileError) {
@@ -103,7 +111,7 @@ const Onboarding = () => {
 
       {/* Progress Dots */}
       <div className="flex justify-center gap-2 py-6">
-        {[1, 2, 3, 4].map((dot) => (
+        {[1, 2, 3, 4, 5].map((dot) => (
           <div
             key={dot}
             className={`h-2 rounded-full transition-smooth ${
@@ -265,6 +273,55 @@ const Onboarding = () => {
         )}
 
         {step === 4 && (
+          <div className="animate-in fade-in slide-in-from-right duration-300">
+            <div className="mb-8">
+              <h2 className="text-2xl font-display font-bold mb-2">
+                What do you do?
+              </h2>
+              <p className="text-muted-foreground">
+                This helps us find relevant policies for you
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <RadioGroup value={occupation} onValueChange={setOccupation}>
+                {[
+                  { value: "private_sector", label: "Private Sector Employee" },
+                  { value: "public_sector", label: "Public Sector Employee" },
+                  { value: "business_owner", label: "Business Owner" },
+                  { value: "self_employed", label: "Self Employed" },
+                  { value: "unemployed", label: "Unemployed" },
+                  { value: "homemaker", label: "Homemaker" },
+                  { value: "farmer", label: "Farmer" },
+                  { value: "retired", label: "Retired" },
+                ].map((option) => (
+                  <div
+                    key={option.value}
+                    className="flex items-center space-x-3 p-4 rounded-2xl border border-input bg-background hover:bg-accent/5 transition-smooth"
+                  >
+                    <RadioGroupItem value={option.value} id={option.value} />
+                    <Label
+                      htmlFor={option.value}
+                      className="flex-1 cursor-pointer text-base"
+                    >
+                      {option.label}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+
+              <Button
+                onClick={handleOccupationSubmit}
+                disabled={!occupation}
+                className="w-full h-14 text-lg rounded-2xl gradient-primary shadow-card-hover transition-smooth mt-6"
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
               <h2 className="text-2xl font-display font-bold mb-2">

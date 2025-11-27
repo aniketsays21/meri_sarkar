@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ArrowLeft,
   TrendingUp,
@@ -18,6 +19,8 @@ import {
   ExternalLink,
   AlertCircle,
   CheckCircle,
+  Info,
+  Target,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -55,6 +58,18 @@ const ImpactCalculator = () => {
   const [matchedPolicies, setMatchedPolicies] = useState<Policy[]>([]);
   const [allPolicies, setAllPolicies] = useState<Policy[]>([]);
   const [totalBenefit, setTotalBenefit] = useState(0);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+
+  const professionLabels: Record<string, string> = {
+    private_sector: "Private Sector Employee",
+    public_sector: "Public Sector Employee", 
+    business_owner: "Business Owner",
+    self_employed: "Self Employed",
+    unemployed: "Unemployed",
+    homemaker: "Homemaker",
+    farmer: "Farmer",
+    retired: "Retired",
+  };
 
   useEffect(() => {
     fetchData();
@@ -329,7 +344,9 @@ const ImpactCalculator = () => {
             {profile.occupation && (
               <div>
                 <span className="text-muted-foreground">Occupation:</span>
-                <span className="ml-2 font-medium">{profile.occupation}</span>
+                <span className="ml-2 font-medium capitalize">
+                  {professionLabels[profile.occupation] || profile.occupation}
+                </span>
               </div>
             )}
             {profile.marital_status && (
@@ -353,85 +370,190 @@ const ImpactCalculator = () => {
               {matchedPolicies.map((policy) => {
                 const Icon = getCategoryIcon(policy.category);
                 const colorClass = getCategoryColor(policy.category);
+                
+                // Get profession eligibility
+                const professions = policy.eligibility_criteria?.occupation || [];
+                const isForAllProfessions = professions.length === 0 || 
+                  professions.includes('all') || 
+                  professions.includes('any');
+                const userProfession = profile?.occupation;
+                const isEligibleProfession = isForAllProfessions || 
+                  professions.includes(userProfession);
 
                 return (
-                  <Card key={policy.id} className="p-4 shadow-card">
+                  <Card 
+                    key={policy.id} 
+                    className="p-4 shadow-card hover:shadow-lg transition-all cursor-pointer"
+                    onClick={() => setSelectedPolicy(policy)}
+                  >
                     <div className="flex items-start gap-3 mb-3">
                       <div className={`w-12 h-12 rounded-xl ${colorClass} flex items-center justify-center flex-shrink-0`}>
                         <Icon className="w-6 h-6" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-sm leading-tight">
-                            {policy.title}
-                          </h3>
-                          {policy.impact_score && (
-                            <Badge variant="secondary" className="text-xs flex-shrink-0">
-                              {policy.impact_score}% impact
+                        <h3 className="font-semibold text-base leading-tight mb-2">
+                          {policy.title}
+                        </h3>
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          {!isForAllProfessions && (
+                            <Badge variant="outline" className="text-xs bg-primary/5">
+                              For: {professions.map((p: string) => 
+                                professionLabels[p] || p
+                              ).join(', ')}
                             </Badge>
                           )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          {policy.description}
-                        </p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className="text-xs">
-                            {policy.category}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {policy.type}
-                          </Badge>
-                          {policy.state && (
+                          {isEligibleProfession ? (
+                            <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                              ✓ You're Eligible
+                            </Badge>
+                          ) : (
                             <Badge variant="outline" className="text-xs">
-                              {policy.state}
+                              Not for your profession
                             </Badge>
                           )}
                         </div>
+                        {policy.benefit_amount && (
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-bold text-primary">
+                              {formatCurrency(policy.benefit_amount)}
+                            </span>
+                            {policy.benefit_description && (
+                              <span className="text-xs text-muted-foreground">
+                                benefit
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {policy.benefit_description && (
-                      <div className="bg-muted/50 rounded-lg p-3 mb-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <DollarSign className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-semibold">Benefit</span>
-                        </div>
-                        <p className="text-sm">{policy.benefit_description}</p>
-                        {policy.benefit_amount && (
-                          <p className="text-lg font-display font-bold text-primary mt-1">
-                            {formatCurrency(policy.benefit_amount)}
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {policy.description}
+                    </p>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Policy Detail Dialog */}
+            <Dialog open={!!selectedPolicy} onOpenChange={() => setSelectedPolicy(null)}>
+              <DialogContent className="max-w-[90%] max-h-[85vh] overflow-y-auto rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold pr-8">
+                    {selectedPolicy?.title}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                {selectedPolicy && (
+                  <div className="space-y-5 mt-4">
+                    {/* Benefit Amount */}
+                    {selectedPolicy.benefit_amount && (
+                      <Card className="p-4 gradient-primary text-white">
+                        <p className="text-white/80 text-xs mb-1">Benefit Amount</p>
+                        <p className="text-3xl font-bold">
+                          {formatCurrency(selectedPolicy.benefit_amount)}
+                        </p>
+                        {selectedPolicy.benefit_description && (
+                          <p className="text-sm text-white/90 mt-2">
+                            {selectedPolicy.benefit_description}
                           </p>
                         )}
-                      </div>
+                      </Card>
                     )}
 
-                    {policy.how_to_apply && (
-                      <div className="mb-3">
-                        <div className="flex items-center gap-2 mb-1">
-                          <CheckCircle className="w-4 h-4 text-secondary" />
-                          <span className="text-xs font-semibold">How to Apply</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {policy.how_to_apply}
+                    {/* What is this policy */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Info className="w-5 h-5 text-primary" />
+                        <h3 className="font-semibold text-base">What is this policy?</h3>
+                      </div>
+                      <Card className="p-4 bg-primary/5 border-primary/20">
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {selectedPolicy.description}
                         </p>
+                      </Card>
+                    </div>
+
+                    {/* Why this policy */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-secondary" />
+                        <h3 className="font-semibold text-base">Why this policy?</h3>
+                      </div>
+                      <Card className="p-4 bg-secondary/5 border-secondary/20">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          This policy is designed to provide {selectedPolicy.category.toLowerCase()} 
+                          support to eligible citizens. It aims to improve quality of life and ensure 
+                          access to essential {selectedPolicy.type.toLowerCase()} benefits.
+                          {selectedPolicy.state && ` Available specifically for residents of ${selectedPolicy.state}.`}
+                        </p>
+                      </Card>
+                    </div>
+
+                    {/* Eligibility */}
+                    {selectedPolicy.eligibility_criteria && Object.keys(selectedPolicy.eligibility_criteria).length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-base">Eligibility Requirements</h3>
+                        <Card className="p-4 bg-accent/5">
+                          <ul className="space-y-2 text-sm">
+                            {Object.entries(selectedPolicy.eligibility_criteria).map(([key, value]: [string, any]) => (
+                              <li key={key} className="flex items-start gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span className="capitalize">
+                                  {key.replace(/_/g, ' ')}: {Array.isArray(value) ? value.join(', ') : String(value)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </Card>
                       </div>
                     )}
 
-                    {policy.application_link && (
+                    {/* How to Apply */}
+                    {selectedPolicy.how_to_apply && (
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-base">How to Apply</h3>
+                        <Card className="p-4 bg-muted/50">
+                          <p className="text-sm text-foreground whitespace-pre-line">
+                            {selectedPolicy.how_to_apply}
+                          </p>
+                        </Card>
+                      </div>
+                    )}
+
+                    {/* Apply Button */}
+                    {selectedPolicy.application_link && (
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => window.open(policy.application_link!, "_blank")}
+                        className="w-full gradient-primary"
+                        size="lg"
+                        onClick={() => window.open(selectedPolicy.application_link!, "_blank")}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Apply Now
                       </Button>
                     )}
-                  </Card>
-                );
-              })}
-            </div>
+
+                    {/* Additional Info */}
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedPolicy.category && (
+                        <Badge variant="outline">{selectedPolicy.category}</Badge>
+                      )}
+                      {selectedPolicy.type && (
+                        <Badge variant="outline" className="capitalize">{selectedPolicy.type}</Badge>
+                      )}
+                      {selectedPolicy.state && (
+                        <Badge variant="outline">{selectedPolicy.state}</Badge>
+                      )}
+                      {selectedPolicy.departments && selectedPolicy.departments.length > 0 && (
+                        <Badge variant="outline">
+                          {selectedPolicy.departments[0]}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </>
         ) : (
           <Card className="p-8 text-center">
