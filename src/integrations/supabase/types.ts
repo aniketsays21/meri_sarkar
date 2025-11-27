@@ -181,6 +181,63 @@ export type Database = {
         }
         Relationships: []
       }
+      policies_subsidies: {
+        Row: {
+          application_link: string | null
+          benefit_amount: number | null
+          benefit_description: string | null
+          category: string
+          created_at: string
+          departments: string[] | null
+          description: string
+          eligibility_criteria: Json
+          how_to_apply: string | null
+          id: string
+          impact_score: number | null
+          is_active: boolean | null
+          state: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          application_link?: string | null
+          benefit_amount?: number | null
+          benefit_description?: string | null
+          category: string
+          created_at?: string
+          departments?: string[] | null
+          description: string
+          eligibility_criteria?: Json
+          how_to_apply?: string | null
+          id?: string
+          impact_score?: number | null
+          is_active?: boolean | null
+          state?: string | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          application_link?: string | null
+          benefit_amount?: number | null
+          benefit_description?: string | null
+          category?: string
+          created_at?: string
+          departments?: string[] | null
+          description?: string
+          eligibility_criteria?: Json
+          how_to_apply?: string | null
+          id?: string
+          impact_score?: number | null
+          is_active?: boolean | null
+          state?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
