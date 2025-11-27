@@ -28,15 +28,38 @@ export const LeadersContent = () => {
 
   const fetchLeaders = async () => {
     try {
-      const { data, error } = await supabase
-        .from("leaders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // First, get user's pincode from profile
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error("No user found");
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("pincode")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        setLoading(false);
+        return;
+      }
+
+      const pincode = profile?.pincode || "560029"; // Default to BTM Layout
+
+      // Call edge function to fetch leaders by pincode
+      const { data, error } = await supabase.functions.invoke("fetch-leaders", {
+        body: { pincode }
+      });
 
       if (error) throw error;
 
-      if (data) {
-        setLeaders(data as Leader[]);
+      if (data?.leaders) {
+        setLeaders(data.leaders as Leader[]);
       }
     } catch (error) {
       console.error("Error fetching leaders:", error);
