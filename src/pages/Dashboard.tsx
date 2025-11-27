@@ -9,9 +9,11 @@ import {
   MapPin,
   Vote,
   Newspaper,
+  Calculator,
 } from "lucide-react";
 import { HomeContent } from "@/components/HomeContent";
 import { LeadersContent } from "@/components/LeadersContent";
+import { ImpactContent } from "@/components/ImpactContent";
 import { PollContent } from "@/components/PollContent";
 import { NewsContent } from "@/components/NewsContent";
 
@@ -98,6 +100,7 @@ const Dashboard = () => {
         <div className="p-5">
           {activeTab === "home" && <HomeContent />}
           {activeTab === "leaders" && <LeadersContent />}
+          {activeTab === "impact" && <ImpactContent />}
           {activeTab === "poll" && <PollContent />}
           {activeTab === "news" && <NewsContent />}
         </div>
@@ -109,6 +112,7 @@ const Dashboard = () => {
           {[
             { id: "home", icon: Home, label: "Home" },
             { id: "leaders", icon: Users, label: "Leaders" },
+            { id: "impact", icon: Calculator, label: "Impact" },
             { id: "poll", icon: Vote, label: "Poll" },
             { id: "news", icon: Newspaper, label: "News" },
           ].map((tab) => (

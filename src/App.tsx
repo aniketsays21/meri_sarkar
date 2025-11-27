@@ -7,6 +7,7 @@ import Splash from "./pages/Splash";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import LeaderDetail from "./pages/LeaderDetail";
+import ImpactCalculator from "./pages/ImpactCalculator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/leader/:id" element={<LeaderDetail />} />
+          <Route path="/impact-calculator" element={<ImpactCalculator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
