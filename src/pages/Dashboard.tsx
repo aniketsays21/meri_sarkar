@@ -65,7 +65,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="mobile-container min-h-screen bg-background pb-20">
       {/* Simple Header */}
       <div className="bg-primary p-6">
         <div className="flex items-center justify-between">
@@ -268,7 +268,7 @@ const Dashboard = () => {
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg">
-        <div className="mobile-container flex items-center justify-around h-16">
+        <div className="flex items-center justify-around h-16">
           {[
             { id: "home", icon: Home, label: "Home" },
             { id: "leaders", icon: Users, label: "Leaders" },
