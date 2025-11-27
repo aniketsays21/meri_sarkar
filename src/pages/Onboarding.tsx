@@ -2,13 +2,18 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Vote, MapPin, Phone } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Vote, MapPin, Phone, User } from "lucide-react";
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
   const [pincode, setPincode] = useState("");
 
   const handlePhoneSubmit = () => {
@@ -20,6 +25,12 @@ const Onboarding = () => {
   const handleOtpSubmit = () => {
     if (otp.length === 6) {
       setStep(3);
+    }
+  };
+
+  const handleDetailsSubmit = () => {
+    if (name && age && gender) {
+      setStep(4);
     }
   };
 
@@ -44,7 +55,7 @@ const Onboarding = () => {
 
       {/* Progress Dots */}
       <div className="flex justify-center gap-2 py-6">
-        {[1, 2, 3].map((dot) => (
+        {[1, 2, 3, 4].map((dot) => (
           <div
             key={dot}
             className={`h-2 rounded-full transition-smooth ${
@@ -141,10 +152,78 @@ const Onboarding = () => {
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
               <h2 className="text-2xl font-display font-bold mb-2">
+                Tell us about yourself
+              </h2>
+              <p className="text-muted-foreground">
+                Help us personalize your experience
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="pl-12 h-14 text-lg rounded-2xl"
+                />
+              </div>
+
+              <Input
+                type="number"
+                placeholder="Age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                min="18"
+                max="120"
+                className="h-14 text-lg rounded-2xl"
+              />
+
+              <div className="space-y-3">
+                <Label className="text-base text-foreground">Gender</Label>
+                <RadioGroup value={gender} onValueChange={setGender}>
+                  <div className="flex items-center space-x-3 p-4 rounded-2xl border border-input bg-background hover:bg-accent/5 transition-smooth">
+                    <RadioGroupItem value="male" id="male" />
+                    <Label htmlFor="male" className="flex-1 cursor-pointer text-base">
+                      Male
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-4 rounded-2xl border border-input bg-background hover:bg-accent/5 transition-smooth">
+                    <RadioGroupItem value="female" id="female" />
+                    <Label htmlFor="female" className="flex-1 cursor-pointer text-base">
+                      Female
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-3 p-4 rounded-2xl border border-input bg-background hover:bg-accent/5 transition-smooth">
+                    <RadioGroupItem value="other" id="other" />
+                    <Label htmlFor="other" className="flex-1 cursor-pointer text-base">
+                      Other
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <Button
+                onClick={handleDetailsSubmit}
+                disabled={!name || !age || !gender}
+                className="w-full h-14 text-lg rounded-2xl gradient-primary shadow-card-hover transition-smooth"
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="animate-in fade-in slide-in-from-right duration-300">
+            <div className="mb-8">
+              <h2 className="text-2xl font-display font-bold mb-2">
                 Where do you live?
               </h2>
               <p className="text-muted-foreground">
-                Enter your pincode to find your leaders
+                This helps us find your leaders
               </p>
             </div>
 
@@ -153,7 +232,7 @@ const Onboarding = () => {
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Pincode"
+                  placeholder="Enter 6-digit Pincode"
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value)}
                   maxLength={6}
