@@ -108,9 +108,13 @@ export const LeadersContent = () => {
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Know Your Neta</h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 mb-3">
           Your political hierarchy from local to state level leaders
         </p>
+        <div className="flex items-center gap-2 text-xs text-indigo-600 font-medium">
+          <span>👇</span>
+          <span>Top to Bottom: State → National → Local</span>
+        </div>
       </div>
 
       <div className="space-y-4">

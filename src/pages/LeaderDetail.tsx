@@ -1,8 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ArrowLeft,
   Share2,
@@ -14,76 +17,123 @@ import {
   Clock,
   AlertTriangle,
   Award,
+  Mail,
+  Phone,
+  MapPin,
+  Briefcase,
+  GraduationCap,
+  Vote,
+  Building2,
+  Twitter,
+  Facebook,
+  Globe,
 } from "lucide-react";
+
+interface LeaderData {
+  id: string;
+  name: string;
+  designation: string;
+  party: string | null;
+  constituency: string | null;
+  state: string | null;
+  image_url: string | null;
+  bio: string | null;
+  education: string | null;
+  current_work: string | null;
+  attendance: number | null;
+  funds_utilized: number | null;
+  total_funds_allocated: number | null;
+  questions_raised: number | null;
+  bills_passed: number | null;
+  assets: number | null;
+  criminal_cases: number | null;
+  office_email: string | null;
+  office_phone: string | null;
+  office_address: string | null;
+  professional_history: any;
+  election_history: any;
+  ongoing_projects: any;
+  completed_projects: any;
+  social_media: any;
+}
 
 const LeaderDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [leader, setLeader] = useState<LeaderData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data - in real app this would come from API
-  const leader = {
-    id: 1,
-    name: "Rajesh Kumar",
-    position: "MP - Lok Sabha",
-    party: "ABC Party",
-    image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rajesh",
-    score: 8.5,
-    attendance: 92,
-    fundsUtilized: 78,
-    questionsRaised: 145,
-    constituency: "Mumbai North",
-    education: "MBA, IIM Ahmedabad",
-    age: 52,
-    assets: "₹12.5 Cr",
-    criminal: 0,
-  };
+  useEffect(() => {
+    fetchLeaderDetail();
+  }, [id]);
 
-  const promises = [
-    {
-      id: 1,
-      text: "Build 5 new public schools in the constituency",
-      status: "completed",
-      progress: 100,
-    },
-    {
-      id: 2,
-      text: "Upgrade metro connectivity",
-      status: "in-progress",
-      progress: 65,
-    },
-    {
-      id: 3,
-      text: "Improve healthcare infrastructure",
-      status: "in-progress",
-      progress: 45,
-    },
-    {
-      id: 4,
-      text: "Reduce air pollution by 30%",
-      status: "delayed",
-      progress: 15,
-    },
-  ];
+  const fetchLeaderDetail = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("leaders")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-  const getScoreColor = (score: number) => {
-    if (score >= 8) return "text-score-excellent";
-    if (score >= 6.5) return "text-score-good";
-    if (score >= 5) return "text-score-average";
-    return "text-score-poor";
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle2 className="w-5 h-5 text-score-excellent" />;
-      case "in-progress":
-        return <Clock className="w-5 h-5 text-score-average" />;
-      case "delayed":
-        return <AlertTriangle className="w-5 h-5 text-score-poor" />;
-      default:
-        return null;
+      if (error) throw error;
+      setLeader(data);
+    } catch (error) {
+      console.error("Error fetching leader:", error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="mobile-container min-h-screen bg-background pb-8">
+        <div className="relative">
+          <Skeleton className="h-48 rounded-b-[2rem]" />
+          <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
+            <Skeleton className="w-24 h-24 rounded-3xl" />
+          </div>
+        </div>
+        <div className="px-6 pt-16 space-y-4">
+          <Skeleton className="h-8 w-3/4 mx-auto" />
+          <Skeleton className="h-4 w-1/2 mx-auto" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!leader) {
+    return (
+      <div className="mobile-container min-h-screen bg-background pb-8 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Leader not found</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const calculateScore = () => {
+    const attendance = leader.attendance || 0;
+    const funds = leader.funds_utilized || 0;
+    const questions = Math.min((leader.questions_raised || 0) / 10, 100);
+    return ((attendance + funds + questions) / 30).toFixed(1);
+  };
+
+  const formatCurrency = (amount: number | null) => {
+    if (!amount) return "₹0";
+    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)} Cr`;
+    if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)} L`;
+    return `₹${amount.toLocaleString()}`;
+  };
+
+  const getStatusIcon = (progress: number) => {
+    if (progress === 100) return <CheckCircle2 className="w-5 h-5 text-score-excellent" />;
+    if (progress >= 50) return <Clock className="w-5 h-5 text-score-average" />;
+    return <AlertTriangle className="w-5 h-5 text-score-poor" />;
+  };
+
+  const score = parseFloat(calculateScore());
 
   return (
     <div className="mobile-container min-h-screen bg-background pb-8">
@@ -102,7 +152,7 @@ const LeaderDetail = () => {
 
         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
           <img
-            src={leader.image}
+            src={leader.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.name}`}
             alt={leader.name}
             className="w-24 h-24 rounded-3xl bg-card border-4 border-card shadow-lg"
           />
@@ -112,16 +162,27 @@ const LeaderDetail = () => {
       {/* Leader Info */}
       <div className="px-6 pt-16 text-center mb-6">
         <h1 className="text-2xl font-display font-bold mb-1">{leader.name}</h1>
-        <p className="text-muted-foreground mb-2">{leader.position}</p>
-        <div className="flex items-center justify-center gap-3">
-          <Badge variant="secondary">{leader.party}</Badge>
-          <div
-            className={`px-4 py-1 rounded-full font-display font-bold text-lg bg-score-excellent text-white`}
-          >
-            {leader.score}/10
+        <p className="text-muted-foreground mb-2">{leader.designation}</p>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          {leader.party && <Badge variant="secondary">{leader.party}</Badge>}
+          {leader.constituency && (
+            <Badge variant="outline">{leader.constituency}</Badge>
+          )}
+          <div className="px-4 py-1 rounded-full font-display font-bold text-lg bg-score-excellent text-white">
+            {score}/10
           </div>
         </div>
       </div>
+
+      {/* About Section */}
+      {leader.bio && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3">About</h2>
+          <Card className="p-4 shadow-card">
+            <p className="text-sm leading-relaxed">{leader.bio}</p>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="px-6 mb-6">
@@ -132,7 +193,7 @@ const LeaderDetail = () => {
                 <Users className="w-6 h-6 text-primary" />
               </div>
               <p className="text-2xl font-display font-bold text-primary">
-                {leader.attendance}%
+                {leader.attendance || 0}%
               </p>
               <p className="text-xs text-muted-foreground">Attendance</p>
             </div>
@@ -142,9 +203,9 @@ const LeaderDetail = () => {
                 <DollarSign className="w-6 h-6 text-accent" />
               </div>
               <p className="text-2xl font-display font-bold text-accent">
-                {leader.fundsUtilized}%
+                {leader.funds_utilized || 0}%
               </p>
-              <p className="text-xs text-muted-foreground">Funds</p>
+              <p className="text-xs text-muted-foreground">Funds Used</p>
             </div>
 
             <div className="text-center">
@@ -152,7 +213,7 @@ const LeaderDetail = () => {
                 <MessageCircle className="w-6 h-6 text-secondary" />
               </div>
               <p className="text-2xl font-display font-bold text-secondary">
-                {leader.questionsRaised}
+                {leader.questions_raised || 0}
               </p>
               <p className="text-xs text-muted-foreground">Questions</p>
             </div>
@@ -162,7 +223,7 @@ const LeaderDetail = () => {
                 <Award className="w-6 h-6 text-score-excellent" />
               </div>
               <p className="text-2xl font-display font-bold text-score-excellent">
-                {leader.criminal}
+                {leader.criminal_cases || 0}
               </p>
               <p className="text-xs text-muted-foreground">Cases</p>
             </div>
@@ -170,65 +231,286 @@ const LeaderDetail = () => {
         </Card>
       </div>
 
-      {/* Background */}
+      {/* Contact & Connect */}
+      {(leader.office_email || leader.office_phone || leader.office_address) && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3">Contact & Connect</h2>
+          <Card className="p-4 shadow-card space-y-3">
+            {leader.office_email && (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Office Email</p>
+                  <p className="text-sm font-medium break-all">{leader.office_email}</p>
+                </div>
+              </div>
+            )}
+            {leader.office_phone && (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-5 h-5 text-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">Office Phone</p>
+                  <p className="text-sm font-medium">{leader.office_phone}</p>
+                </div>
+              </div>
+            )}
+            {leader.office_address && (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-5 h-5 text-secondary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-1">Office Address</p>
+                  <p className="text-sm font-medium">{leader.office_address}</p>
+                </div>
+              </div>
+            )}
+            {leader.social_media && Object.keys(leader.social_media).length > 0 && (
+              <div className="pt-3 border-t flex gap-2 flex-wrap">
+                {leader.social_media.twitter && (
+                  <a
+                    href={`https://twitter.com/${leader.social_media.twitter.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                  >
+                    <Twitter className="w-4 h-4" />
+                    <span className="text-xs font-medium">{leader.social_media.twitter}</span>
+                  </a>
+                )}
+                {leader.social_media.facebook && (
+                  <a
+                    href={`https://facebook.com/${leader.social_media.facebook}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                  >
+                    <Facebook className="w-4 h-4" />
+                    <span className="text-xs font-medium">Facebook</span>
+                  </a>
+                )}
+                {leader.social_media.website && (
+                  <a
+                    href={`https://${leader.social_media.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span className="text-xs font-medium">Website</span>
+                  </a>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Professional History */}
+      {leader.professional_history && Array.isArray(leader.professional_history) && leader.professional_history.length > 0 && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
+            <Briefcase className="w-5 h-5" />
+            Professional History
+          </h2>
+          <div className="space-y-3">
+            {leader.professional_history.map((position: any, index: number) => (
+              <Card key={index} className="p-4 shadow-card">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm mb-1">{position.designation}</h3>
+                    <p className="text-xs text-muted-foreground mb-1">{position.government}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {position.start_year} - {position.end_year || "Present"}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Educational Background */}
+      {leader.education && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
+            <GraduationCap className="w-5 h-5" />
+            Educational Background
+          </h2>
+          <Card className="p-4 shadow-card">
+            <p className="text-sm">{leader.education}</p>
+          </Card>
+        </div>
+      )}
+
+      {/* Election Track Record */}
+      {leader.election_history && Array.isArray(leader.election_history) && leader.election_history.length > 0 && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
+            <Vote className="w-5 h-5" />
+            Election Track Record
+          </h2>
+          <div className="space-y-3">
+            {leader.election_history.map((election: any, index: number) => (
+              <Card key={index} className="p-4 shadow-card">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold text-sm">{election.constituency}</h3>
+                    <p className="text-xs text-muted-foreground">Year: {election.year}</p>
+                  </div>
+                  <Badge variant={election.result === "Won" ? "default" : "secondary"}>
+                    {election.result}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Votes Received</p>
+                    <p className="text-sm font-semibold">{election.votes_received.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Votes</p>
+                    <p className="text-sm font-semibold">{election.total_votes.toLocaleString()}</p>
+                  </div>
+                </div>
+                <Progress 
+                  value={(election.votes_received / election.total_votes) * 100} 
+                  className="h-2 mt-2"
+                />
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ongoing Projects */}
+      {leader.ongoing_projects && Array.isArray(leader.ongoing_projects) && leader.ongoing_projects.length > 0 && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3">Ongoing Projects</h2>
+          <div className="space-y-3">
+            {leader.ongoing_projects.map((project: any, index: number) => (
+              <Card key={index} className="p-4 shadow-card">
+                <div className="flex items-start gap-3 mb-3">
+                  {getStatusIcon(project.progress)}
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm mb-1">{project.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">{project.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Started: {new Date(project.start_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <Progress value={project.progress} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {project.progress}% complete
+                </p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Completed Projects */}
+      {leader.completed_projects && Array.isArray(leader.completed_projects) && leader.completed_projects.length > 0 && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3">Completed Projects</h2>
+          <div className="space-y-3">
+            {leader.completed_projects.map((project: any, index: number) => (
+              <Card key={index} className="p-4 shadow-card">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-score-excellent flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm mb-1">{project.title}</h3>
+                    <p className="text-xs text-muted-foreground mb-2">{project.description}</p>
+                    <p className="text-xs text-score-excellent">
+                      Completed: {new Date(project.completion_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Funds Utilization */}
+      {leader.total_funds_allocated && (
+        <div className="px-6 mb-6">
+          <h2 className="text-lg font-display font-bold mb-3">Funds Utilization</h2>
+          <Card className="p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Total Allocated</p>
+                <p className="text-lg font-display font-bold">{formatCurrency(leader.total_funds_allocated)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground mb-1">Utilized</p>
+                <p className="text-lg font-display font-bold text-accent">
+                  {formatCurrency(leader.total_funds_allocated * ((leader.funds_utilized || 0) / 100))}
+                </p>
+              </div>
+            </div>
+            <Progress value={leader.funds_utilized || 0} className="h-3" />
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              {leader.funds_utilized || 0}% of allocated funds utilized
+            </p>
+          </Card>
+        </div>
+      )}
+
+      {/* Background Info */}
       <div className="px-6 mb-6">
-        <h2 className="text-lg font-display font-bold mb-3">Background</h2>
+        <h2 className="text-lg font-display font-bold mb-3">Additional Information</h2>
         <Card className="p-4 shadow-card">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Education</p>
-              <p className="font-medium">{leader.education}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Age</p>
-              <p className="font-medium">{leader.age} years</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Assets</p>
-              <p className="font-medium">{leader.assets}</p>
-            </div>
+            {leader.assets && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Total Assets</p>
+                <p className="font-semibold">{formatCurrency(leader.assets)}</p>
+              </div>
+            )}
             <div>
               <p className="text-sm text-muted-foreground mb-1">Criminal Cases</p>
-              <p className="font-medium text-score-excellent">
-                {leader.criminal} cases
+              <p className="font-semibold text-score-excellent">
+                {leader.criminal_cases || 0} cases
               </p>
             </div>
+            {leader.bills_passed !== null && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Bills Passed</p>
+                <p className="font-semibold">{leader.bills_passed}</p>
+              </div>
+            )}
+            {leader.current_work && (
+              <div className="col-span-2">
+                <p className="text-sm text-muted-foreground mb-1">Current Work</p>
+                <p className="text-sm">{leader.current_work}</p>
+              </div>
+            )}
           </div>
         </Card>
       </div>
 
-      {/* Promise Tracker */}
-      <div className="px-6 mb-6">
-        <h2 className="text-lg font-display font-bold mb-3">Promise Tracker</h2>
-        <div className="space-y-3">
-          {promises.map((promise) => (
-            <Card key={promise.id} className="p-4 shadow-card">
-              <div className="flex items-start gap-3 mb-3">
-                {getStatusIcon(promise.status)}
-                <p className="flex-1 text-sm font-medium">{promise.text}</p>
-              </div>
-              <Progress value={promise.progress} className="h-2" />
-              <p className="text-xs text-muted-foreground mt-2">
-                {promise.progress}% complete
-              </p>
-            </Card>
-          ))}
-        </div>
-      </div>
-
       {/* Action Buttons */}
-      <div className="px-6 grid grid-cols-2 gap-3">
+      <div className="px-6 grid grid-cols-2 gap-3 mb-6">
         <Button
           variant="outline"
           className="h-12 rounded-xl"
-          onClick={() => navigate("/compare")}
+          onClick={() => navigate(-1)}
         >
-          <TrendingUp className="w-4 h-4 mr-2" />
-          Compare
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
         </Button>
         <Button className="h-12 rounded-xl gradient-primary">
           <Share2 className="w-4 h-4 mr-2" />
-          Share Report Card
+          Share Profile
         </Button>
       </div>
     </div>
