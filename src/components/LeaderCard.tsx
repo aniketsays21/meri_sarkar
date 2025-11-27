@@ -80,7 +80,7 @@ const LeaderCard = ({ leader, onClick }: LeaderCardProps) => {
             <Users className="w-4 h-4 text-primary" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Attendance</p>
+            <p className="text-xs text-muted-foreground">Sabha Attendance</p>
             <p className="font-display font-bold text-sm">{leader.attendance}%</p>
           </div>
         </div>

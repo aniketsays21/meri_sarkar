@@ -209,7 +209,7 @@ const LeaderDetail = () => {
               <p className="text-2xl font-display font-bold text-primary">
                 {leader.attendance || 0}%
               </p>
-              <p className="text-xs text-muted-foreground">Attendance</p>
+              <p className="text-xs text-muted-foreground">Sabha Attendance</p>
             </div>
 
             <div className="text-center">
