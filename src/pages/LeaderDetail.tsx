@@ -38,7 +38,7 @@ interface LeaderData {
   state: string | null;
   image_url: string | null;
   bio: string | null;
-  education: string | null;
+  education: string | any[] | null;
   current_work: string | null;
   attendance: number | null;
   funds_utilized: number | null;
@@ -187,7 +187,7 @@ const LeaderDetail = () => {
       {/* Quick Stats */}
       <div className="px-6 mb-6">
         <Card className="p-5 shadow-card">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
                 <Users className="w-6 h-6 text-primary" />
@@ -206,26 +206,6 @@ const LeaderDetail = () => {
                 {leader.funds_utilized || 0}%
               </p>
               <p className="text-xs text-muted-foreground">Funds Used</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mx-auto mb-2">
-                <MessageCircle className="w-6 h-6 text-secondary" />
-              </div>
-              <p className="text-2xl font-display font-bold text-secondary">
-                {leader.questions_raised || 0}
-              </p>
-              <p className="text-xs text-muted-foreground">Questions</p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-score-excellent/10 flex items-center justify-center mx-auto mb-2">
-                <Award className="w-6 h-6 text-score-excellent" />
-              </div>
-              <p className="text-2xl font-display font-bold text-score-excellent">
-                {leader.criminal_cases || 0}
-              </p>
-              <p className="text-xs text-muted-foreground">Cases</p>
             </div>
           </div>
         </Card>
@@ -317,23 +297,32 @@ const LeaderDetail = () => {
             <Briefcase className="w-5 h-5" />
             Professional History
           </h2>
-          <div className="space-y-3">
-            {leader.professional_history.map((position: any, index: number) => (
-              <Card key={index} className="p-4 shadow-card">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-5 h-5 text-primary" />
+          <div className="relative">
+            {/* Timeline line */}
+            <div className="absolute left-[1.125rem] top-4 bottom-4 w-0.5 bg-border" />
+            
+            <div className="space-y-6">
+              {leader.professional_history.map((position: any, index: number) => (
+                <div key={index} className="relative pl-12">
+                  {/* Timeline dot */}
+                  <div className="absolute left-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-white" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm mb-1">{position.designation}</h3>
-                    <p className="text-xs text-muted-foreground mb-1">{position.government}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {position.start_year} - {position.end_year || "Present"}
+                  
+                  <Card className="p-4 shadow-card">
+                    <h3 className="font-bold text-base mb-1">{position.designation || position.title}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {position.government || position.organization}
                     </p>
-                  </div>
+                    <div className="inline-block px-3 py-1 rounded-full bg-primary/10">
+                      <p className="text-xs font-medium text-primary">
+                        {position.start_year} - {position.end_year || "Present"}
+                      </p>
+                    </div>
+                  </Card>
                 </div>
-              </Card>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -346,7 +335,28 @@ const LeaderDetail = () => {
             Educational Background
           </h2>
           <Card className="p-4 shadow-card">
-            <p className="text-sm">{leader.education}</p>
+            {typeof leader.education === 'string' ? (
+              <p className="text-sm leading-relaxed">{leader.education}</p>
+            ) : Array.isArray(leader.education) && leader.education.length > 0 ? (
+              <div className="space-y-4">
+                {leader.education.map((edu: any, index: number) => (
+                  <div key={index} className="flex gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm">{edu.degree}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{edu.university}</p>
+                      <p className="text-xs text-primary mt-1">
+                        {edu.start_year} - {edu.end_year || "Present"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm leading-relaxed">{JSON.stringify(leader.education)}</p>
+            )}
           </Card>
         </div>
       )}

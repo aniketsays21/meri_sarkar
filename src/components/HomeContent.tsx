@@ -60,7 +60,7 @@ const areaMetrics = [
 export const HomeContent = () => {
   const navigate = useNavigate();
   const [selectedMetric, setSelectedMetric] = useState<typeof areaMetrics[0] | null>(null);
-  const [mlaLeader, setMlaLeader] = useState<any>(null);
+  const [mlaLeader, setMlaLeader] = useState<any[]>([]);
 
   useEffect(() => {
     fetchMLA();
@@ -84,15 +84,11 @@ export const HomeContent = () => {
       });
 
       if (data?.leaders) {
-        // Find MLA (designation contains "MLA" or hierarchy_level indicates assembly level)
-        const mla = data.leaders.find((l: any) => 
-          l.designation.toLowerCase().includes("mla") || 
-          l.designation.toLowerCase().includes("vidhayak")
-        );
-        setMlaLeader(mla);
+        // Set all leaders (MLA, MP, Councillor, etc.)
+        setMlaLeader(data.leaders);
       }
     } catch (error) {
-      console.error("Error fetching MLA:", error);
+      console.error("Error fetching leaders:", error);
     }
   };
 
@@ -111,46 +107,52 @@ export const HomeContent = () => {
   return (
     <div className="space-y-6">
       {/* My Leader Report */}
-      <Card 
-        className="p-5 hover:shadow-lg transition-shadow cursor-pointer" 
-        onClick={() => mlaLeader && navigate(`/leader/${mlaLeader.id}`)}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">My Leader Report</h2>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {mlaLeader ? (
-            <>
-              <img 
-                src={mlaLeader.image_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400"} 
-                alt={mlaLeader.name}
-                className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base mb-1">{mlaLeader.name}</h3>
-                <p className="text-sm text-muted-foreground">{mlaLeader.designation}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="px-2 py-0.5 rounded-full bg-primary/10">
-                    <span className="text-xs font-medium text-primary">{mlaLeader.party || "Independent"}</span>
+      <div>
+        <h2 className="text-lg font-semibold mb-4">My Leader Report</h2>
+        {mlaLeader && mlaLeader.length > 0 ? (
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
+            {mlaLeader.map((leader: any) => (
+              <Card
+                key={leader.id}
+                className="flex-shrink-0 w-[280px] p-5 hover:shadow-lg transition-all cursor-pointer snap-center"
+                onClick={() => navigate(`/leader/${leader.id}`)}
+              >
+                <div className="flex items-center gap-4 mb-3">
+                  <img
+                    src={leader.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.name}`}
+                    alt={leader.name}
+                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base mb-1 truncate">{leader.name}</h3>
+                    <p className="text-sm text-muted-foreground truncate">{leader.designation}</p>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            <>
+                <div className="flex items-center justify-between">
+                  {leader.party && (
+                    <div className="px-2 py-0.5 rounded-full bg-primary/10">
+                      <span className="text-xs font-medium text-primary">{leader.party}</span>
+                    </div>
+                  )}
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-5">
+            <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
                 <User className="w-8 h-8 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-base mb-1">Loading...</h3>
-                <p className="text-sm text-muted-foreground">Fetching your MLA</p>
+                <p className="text-sm text-muted-foreground">Fetching your leaders</p>
               </div>
-            </>
-          )}
-        </div>
-      </Card>
+            </div>
+          </Card>
+        )}
+      </div>
 
       {/* My Area Report */}
       <div>
