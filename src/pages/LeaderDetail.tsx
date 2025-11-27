@@ -27,6 +27,8 @@ import {
   Twitter,
   Facebook,
   Globe,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface LeaderData {
@@ -46,7 +48,6 @@ interface LeaderData {
   questions_raised: number | null;
   bills_passed: number | null;
   assets: number | null;
-  criminal_cases: number | null;
   office_email: string | null;
   office_phone: string | null;
   office_address: string | null;
@@ -62,6 +63,19 @@ const LeaderDetail = () => {
   const navigate = useNavigate();
   const [leader, setLeader] = useState<LeaderData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (index: number) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     fetchLeaderDetail();
@@ -302,28 +316,90 @@ const LeaderDetail = () => {
             <div className="absolute left-[0.875rem] top-2 bottom-2 w-0.5 bg-border" />
             
             <div className="space-y-6">
-              {leader.professional_history.map((position: any, index: number) => (
-                <div key={index} className="relative pl-10">
-                  {/* Timeline dot */}
-                  <div className="absolute left-0 top-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-base mb-1.5 leading-tight">
-                      {position.designation || position.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-2.5">
-                      {position.government || position.organization}
-                    </p>
-                    <div className="inline-block px-3 py-1.5 rounded-md bg-primary/10">
-                      <p className="text-sm font-semibold text-primary">
-                        {position.start_year} - {position.end_year || "Present"}
-                      </p>
+              {leader.professional_history.map((position: any, index: number) => {
+                const isExpanded = expandedItems.has(index);
+                const hasDetails = position.achievements || position.responsibilities || position.description;
+                
+                return (
+                  <div key={index} className="relative pl-10">
+                    {/* Timeline dot */}
+                    <div className="absolute left-0 top-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-base mb-1.5 leading-tight">
+                            {position.designation || position.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2.5">
+                            {position.government || position.organization}
+                          </p>
+                          <div className="inline-block px-3 py-1.5 rounded-md bg-primary/10">
+                            <p className="text-sm font-semibold text-primary">
+                              {position.start_year} - {position.end_year || "Present"}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {hasDetails && (
+                          <button
+                            onClick={() => toggleExpand(index)}
+                            className="flex-shrink-0 w-8 h-8 rounded-full bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors"
+                            aria-label={isExpanded ? "Collapse" : "Expand"}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Expandable content */}
+                      {hasDetails && isExpanded && (
+                        <div className="mt-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                          {position.description && (
+                            <div className="p-3 rounded-lg bg-muted/50">
+                              <p className="text-sm text-foreground">{position.description}</p>
+                            </div>
+                          )}
+                          
+                          {position.achievements && Array.isArray(position.achievements) && position.achievements.length > 0 && (
+                            <div className="p-3 rounded-lg bg-accent/5 border border-accent/20">
+                              <h4 className="font-semibold text-sm mb-2 text-accent">Key Achievements</h4>
+                              <ul className="space-y-1.5">
+                                {position.achievements.map((achievement: string, i: number) => (
+                                  <li key={i} className="text-sm text-foreground flex gap-2">
+                                    <span className="text-accent mt-0.5">•</span>
+                                    <span>{achievement}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          
+                          {position.responsibilities && Array.isArray(position.responsibilities) && position.responsibilities.length > 0 && (
+                            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                              <h4 className="font-semibold text-sm mb-2 text-primary">Key Responsibilities</h4>
+                              <ul className="space-y-1.5">
+                                {position.responsibilities.map((responsibility: string, i: number) => (
+                                  <li key={i} className="text-sm text-foreground flex gap-2">
+                                    <span className="text-primary mt-0.5">•</span>
+                                    <span>{responsibility}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -488,12 +564,6 @@ const LeaderDetail = () => {
                 <p className="font-semibold">{formatCurrency(leader.assets)}</p>
               </div>
             )}
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Criminal Cases</p>
-              <p className="font-semibold text-score-excellent">
-                {leader.criminal_cases || 0} cases
-              </p>
-            </div>
             {leader.bills_passed !== null && (
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Bills Passed</p>
