@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import FloatingChatbot from "@/components/FloatingChatbot";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Vote,
   ChevronRight,
@@ -25,6 +27,8 @@ import {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("home");
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("");
 
   const areaMetrics = [
     { name: "Roads", score: 72, icon: Construction },
@@ -63,74 +67,128 @@ const Dashboard = () => {
     return "Needs Attention";
   };
 
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (profile) {
+            setUserName(profile.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="mobile-container min-h-screen bg-background pb-20">
+        <div className="p-6">
+          <Skeleton className="h-8 w-32 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+        
+        <div className="space-y-6 px-5">
+          <div>
+            <Skeleton className="h-6 w-40 mb-4" />
+            <Skeleton className="h-48 w-full rounded-3xl" />
+          </div>
+          
+          <div>
+            <Skeleton className="h-6 w-36 mb-4" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-32 rounded-3xl" />
+              <Skeleton className="h-32 rounded-3xl" />
+              <Skeleton className="h-32 rounded-3xl" />
+              <Skeleton className="h-32 rounded-3xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mobile-container min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 pb-20">
+    <div className="mobile-container min-h-screen bg-background pb-20">
       {/* Header */}
-      <div className="gradient-hero p-6 pb-8 rounded-b-[2rem] shadow-card-hover">
+      <div className="p-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold text-white">
-              Meri Sarkar
+            <h1 className="text-3xl font-display font-bold text-foreground">
+              Hi {userName || 'there'}! 👋
             </h1>
-            <div className="flex items-center gap-1 text-white/80 text-sm mt-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
               <MapPin className="w-4 h-4" />
               <span>Mumbai North - 400053</span>
             </div>
           </div>
-          <button className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center transition-smooth hover:bg-white/30">
-            <Bell className="w-5 h-5 text-white" />
+          <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
+            <Bell className="w-5 h-5 text-foreground" />
           </button>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8 py-2">
         {/* 1. My Leader Report - Overall Score */}
         <div className="px-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-display font-bold">My Leader Report</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-bold text-foreground">My Leader Report</h2>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </div>
           
-          <div className="gradient-hero p-6 rounded-3xl shadow-card-hover">
-            <div className="flex items-center gap-4 mb-4">
+          <div className="bg-background border border-border/50 p-6 rounded-3xl">
+            <div className="flex items-center gap-4 mb-6">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <div className="w-[72px] h-[72px] rounded-full bg-white flex items-center justify-center flex-col">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-[72px] h-[72px] rounded-full bg-background flex items-center justify-center flex-col border-2 border-primary/20">
                     <span className="text-3xl font-display font-bold text-primary">78</span>
                     <span className="text-xs text-muted-foreground">/ 100</span>
                   </div>
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="font-display font-bold text-lg text-white">Rajesh Kumar</h3>
-                <p className="text-sm text-white/80">MP - Mumbai North</p>
+                <h3 className="font-display font-bold text-lg text-foreground">Rajesh Kumar</h3>
+                <p className="text-sm text-muted-foreground">MP - Mumbai North</p>
                 <div className="flex items-center gap-2 mt-2">
-                  <div className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium">
+                  <div className="px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-medium">
                     Good Performance
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3 pt-4 border-t border-white/20">
-              <p className="text-xs font-medium text-white/70 uppercase tracking-wide">Recent Activities</p>
+            <div className="space-y-3 pt-4 border-t border-border/50">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Recent Activities</p>
               <div className="space-y-3">
-                <div className="flex items-start gap-3 bg-white/10 backdrop-blur-sm p-3 rounded-2xl">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-4 h-4 text-white" />
+                <div className="flex items-start gap-3 bg-muted/30 p-3 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Briefcase className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">Inaugurated new road</p>
-                    <p className="text-xs text-white/70">Ward 23 • 2 days ago</p>
+                    <p className="text-sm font-medium text-foreground">Inaugurated new road</p>
+                    <p className="text-xs text-muted-foreground">Ward 23 • 2 days ago</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 bg-white/10 backdrop-blur-sm p-3 rounded-2xl">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 text-white" />
+                <div className="flex items-start gap-3 bg-muted/30 p-3 rounded-2xl">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">12 questions in Parliament</p>
-                    <p className="text-xs text-white/70">This month</p>
+                    <p className="text-sm font-medium text-foreground">12 questions in Parliament</p>
+                    <p className="text-xs text-muted-foreground">This month</p>
                   </div>
                 </div>
               </div>
@@ -140,8 +198,8 @@ const Dashboard = () => {
 
         {/* 2. My Area Report - Multiple Metrics */}
         <div className="px-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-display font-bold">My Area Report</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-bold text-foreground">My Area Report</h2>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10">
               <TrendingUp className="w-4 h-4 text-accent" />
               <span className="text-sm font-bold text-accent">75</span>
@@ -151,12 +209,12 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-2 gap-4">
             {areaMetrics.map((metric) => (
-              <div key={metric.name} className="p-5 rounded-3xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50 transition-smooth hover:shadow-card">
+              <div key={metric.name} className="p-5 rounded-3xl bg-background border border-border/50 transition-smooth">
                 <div className="flex items-center gap-2 mb-4">
                   <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${getScoreColor(metric.score)}/10`}>
                     <metric.icon className={`w-5 h-5 ${getScoreTextColor(metric.score)}`} />
                   </div>
-                  <span className="font-medium text-sm">{metric.name}</span>
+                  <span className="font-medium text-sm text-foreground">{metric.name}</span>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-end gap-1">
@@ -172,8 +230,8 @@ const Dashboard = () => {
 
         {/* 3. Your Policy Impact */}
         <div className="px-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-display font-bold">Your Policy Impact</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-bold text-foreground">Your Policy Impact</h2>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </div>
           
@@ -185,17 +243,17 @@ const Dashboard = () => {
             {policies.map((policy, index) => (
               <div
                 key={index}
-                className={`p-5 rounded-3xl transition-smooth ${
+                className={`p-5 rounded-3xl transition-smooth border ${
                   policy.eligible
-                    ? "bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20"
-                    : "bg-muted/30 border border-border/50"
+                    ? "bg-accent/5 border-accent/30"
+                    : "bg-background border-border/50"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className={`w-5 h-5 ${policy.eligible ? "text-accent" : "text-muted-foreground"}`} />
-                      <p className="font-display font-bold text-sm">{policy.title}</p>
+                      <p className="font-display font-bold text-sm text-foreground">{policy.title}</p>
                     </div>
                     <p className="text-lg font-bold text-primary">{policy.amount}</p>
                   </div>
@@ -216,38 +274,38 @@ const Dashboard = () => {
 
         {/* 4. Track State Leader */}
         <div className="px-5 pb-2">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-display font-bold">Track State Leader</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-bold text-foreground">Track State Leader</h2>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground mb-4">What your Chief Minister is doing</p>
           
-          <div className="gradient-secondary p-6 rounded-3xl shadow-card-hover mb-4">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-card">
-                <Users className="w-7 h-7 text-white" />
+          <div className="bg-background border border-border/50 p-6 rounded-3xl">
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border/50">
+              <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center">
+                <Users className="w-7 h-7 text-secondary" />
               </div>
               <div>
-                <h3 className="font-display font-bold text-white">Devendra Fadnavis</h3>
-                <p className="text-sm text-white/80">Chief Minister, Maharashtra</p>
+                <h3 className="font-display font-bold text-foreground">Devendra Fadnavis</h3>
+                <p className="text-sm text-muted-foreground">Chief Minister, Maharashtra</p>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-medium text-white/70 uppercase tracking-wide">Recent Updates</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Recent Updates</p>
               <div className="space-y-3">
-                <div className="flex items-start gap-3 bg-white/10 backdrop-blur-sm p-3 rounded-2xl">
-                  <div className="w-2 h-2 rounded-full bg-white mt-2 flex-shrink-0" />
+                <div className="flex items-start gap-3 bg-muted/30 p-3 rounded-2xl">
+                  <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-white">₹500Cr infrastructure fund announced</p>
-                    <p className="text-xs text-white/70">3 days ago</p>
+                    <p className="text-sm font-medium text-foreground">₹500Cr infrastructure fund announced</p>
+                    <p className="text-xs text-muted-foreground">3 days ago</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 bg-white/10 backdrop-blur-sm p-3 rounded-2xl">
-                  <div className="w-2 h-2 rounded-full bg-white mt-2 flex-shrink-0" />
+                <div className="flex items-start gap-3 bg-muted/30 p-3 rounded-2xl">
+                  <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-white">New affordable housing scheme launched</p>
-                    <p className="text-xs text-white/70">1 week ago</p>
+                    <p className="text-sm font-medium text-foreground">New affordable housing scheme launched</p>
+                    <p className="text-xs text-muted-foreground">1 week ago</p>
                   </div>
                 </div>
               </div>
