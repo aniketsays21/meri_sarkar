@@ -409,33 +409,40 @@ const LeaderDetail = () => {
       {leader.education && (
         <div className="px-6 mb-6">
           <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
-            <GraduationCap className="w-5 h-5" />
+            <GraduationCap className="w-5 h-5 text-primary" />
             Educational Background
           </h2>
-          <Card className="p-4 shadow-card">
+          <div className="space-y-3">
             {typeof leader.education === 'string' ? (
-              <p className="text-sm leading-relaxed">{leader.education}</p>
+              <Card className="p-4 shadow-card">
+                <p className="text-sm leading-relaxed">{leader.education}</p>
+              </Card>
             ) : Array.isArray(leader.education) && leader.education.length > 0 ? (
-              <div className="space-y-4">
-                {leader.education.map((edu: any, index: number) => (
-                  <div key={index} className="flex gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <GraduationCap className="w-5 h-5 text-primary" />
+              leader.education.map((edu: any, index: number) => (
+                <Card key={index} className="p-4 shadow-card">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-sm">{edu.degree}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{edu.university}</p>
-                      <p className="text-xs text-primary mt-1">
-                        {edu.start_year} - {edu.end_year || "Present"}
-                      </p>
+                      <h3 className="font-bold text-base mb-1.5">{edu.degree}</h3>
+                      <p className="text-sm text-foreground mb-2">{edu.university}</p>
+                      {(edu.field || edu.specialization) && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {edu.field || edu.specialization}
+                        </p>
+                      )}
+                      <div className="inline-block px-3 py-1 rounded-md bg-primary/10">
+                        <p className="text-xs font-semibold text-primary">
+                          {edu.start_year} - {edu.end_year || edu.year || "Completed"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm leading-relaxed">{JSON.stringify(leader.education)}</p>
-            )}
-          </Card>
+                </Card>
+              ))
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -443,35 +450,37 @@ const LeaderDetail = () => {
       {leader.election_history && Array.isArray(leader.election_history) && leader.election_history.length > 0 && (
         <div className="px-6 mb-6">
           <h2 className="text-lg font-display font-bold mb-3 flex items-center gap-2">
-            <Vote className="w-5 h-5" />
+            <Vote className="w-5 h-5 text-primary" />
             Election Track Record
           </h2>
           <div className="space-y-3">
             {leader.election_history.map((election: any, index: number) => (
-              <Card key={index} className="p-4 shadow-card">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h3 className="font-semibold text-sm">{election.constituency}</h3>
-                    <p className="text-xs text-muted-foreground">Year: {election.year}</p>
+              <Card key={index} className="p-5 shadow-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-3 mb-1">
+                      <h3 className="text-3xl font-display font-bold">{election.year}</h3>
+                      <p className="text-sm text-muted-foreground">· {election.constituency}</p>
+                    </div>
+                    <p className="text-sm text-foreground">
+                      vs {election.opponent_name || "Independent"} {election.opponent_party && `(${election.opponent_party})`}
+                    </p>
                   </div>
-                  <Badge variant={election.result === "Won" ? "default" : "secondary"}>
-                    {election.result}
-                  </Badge>
+                  <div className="text-right ml-4">
+                    <Badge 
+                      className={`mb-2 px-4 py-1.5 text-sm font-bold ${
+                        election.result === "Won" || election.result === "WON"
+                          ? "bg-score-excellent text-white border-score-excellent"
+                          : "bg-destructive text-white border-destructive"
+                      }`}
+                    >
+                      {(election.result === "Won" || election.result === "WON") ? "WON" : "LOST"}
+                    </Badge>
+                    <p className="text-lg font-bold text-primary">
+                      {election.votes_received?.toLocaleString() || election.votes?.toLocaleString() || "N/A"} votes
+                    </p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Votes Received</p>
-                    <p className="text-sm font-semibold">{election.votes_received.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Votes</p>
-                    <p className="text-sm font-semibold">{election.total_votes.toLocaleString()}</p>
-                  </div>
-                </div>
-                <Progress 
-                  value={(election.votes_received / election.total_votes) * 100} 
-                  className="h-2 mt-2"
-                />
               </Card>
             ))}
           </div>
