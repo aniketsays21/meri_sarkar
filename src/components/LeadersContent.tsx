@@ -21,6 +21,13 @@ export const LeadersContent = () => {
   const navigate = useNavigate();
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locationInfo, setLocationInfo] = useState<{
+    ward?: string;
+    assembly_constituency?: string;
+    parliamentary_constituency?: string;
+    district?: string;
+    state?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchLeaders();
@@ -60,6 +67,9 @@ export const LeadersContent = () => {
 
       if (data?.leaders) {
         setLeaders(data.leaders as Leader[]);
+      }
+      if (data?.pincode_info) {
+        setLocationInfo(data.pincode_info);
       }
     } catch (error) {
       console.error("Error fetching leaders:", error);
@@ -133,11 +143,13 @@ export const LeadersContent = () => {
         })}
       </div>
 
-      <div className="bg-white rounded-xl p-6 border border-gray-100 text-center">
-        <p className="text-sm text-gray-500">
-          📍 Showing leaders for BTM Layout, Bengaluru South
-        </p>
-      </div>
+      {locationInfo && (
+        <div className="bg-white rounded-xl p-6 border border-gray-100 text-center">
+          <p className="text-sm text-gray-500">
+            📍 Showing leaders for {locationInfo.ward || locationInfo.assembly_constituency}, {locationInfo.parliamentary_constituency || locationInfo.district}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
