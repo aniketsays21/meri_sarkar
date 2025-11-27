@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User } from "lucide-react";
+import { ChevronRight, User, Calculator, ArrowRight } from "lucide-react";
 import { Card } from "./ui/card";
+import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 
 const areaMetrics = [
@@ -181,6 +182,68 @@ export const HomeContent = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Policies for You */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">Policies for You</h2>
+        <Card className="p-5 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Calculator className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-2">
+                Discover Your Benefits
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Find government policies and subsidies based on your profile
+              </p>
+              <Button
+                onClick={() => navigate("/impact-calculator")}
+                className="w-full gradient-primary"
+                size="sm"
+              >
+                View All Benefits
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <Card 
+            className="p-4 hover:shadow-md transition-all cursor-pointer"
+            onClick={() => navigate("/impact-calculator")}
+          >
+            <div className="mb-3">
+              <h4 className="font-semibold text-sm mb-1">PM Kisan</h4>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  ✓ Eligible
+                </span>
+              </div>
+              <p className="text-lg font-bold text-primary">₹6,000</p>
+              <p className="text-xs text-muted-foreground">per year</p>
+            </div>
+          </Card>
+
+          <Card 
+            className="p-4 hover:shadow-md transition-all cursor-pointer"
+            onClick={() => navigate("/impact-calculator")}
+          >
+            <div className="mb-3">
+              <h4 className="font-semibold text-sm mb-1">Soil Health</h4>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  ✓ Eligible
+                </span>
+              </div>
+              <p className="text-sm font-semibold text-primary">Free</p>
+              <p className="text-xs text-muted-foreground">scheme</p>
+            </div>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
