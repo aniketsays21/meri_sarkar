@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, User, Calculator, ArrowRight } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const areaMetrics = [
   { 
@@ -59,6 +60,41 @@ const areaMetrics = [
 export const HomeContent = () => {
   const navigate = useNavigate();
   const [selectedMetric, setSelectedMetric] = useState<typeof areaMetrics[0] | null>(null);
+  const [mlaLeader, setMlaLeader] = useState<any>(null);
+
+  useEffect(() => {
+    fetchMLA();
+  }, []);
+
+  const fetchMLA = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pincode")
+        .eq("user_id", user.id)
+        .single();
+
+      const pincode = profile?.pincode || "560029";
+
+      const { data } = await supabase.functions.invoke("fetch-leaders", {
+        body: { pincode }
+      });
+
+      if (data?.leaders) {
+        // Find MLA (designation contains "MLA" or hierarchy_level indicates assembly level)
+        const mla = data.leaders.find((l: any) => 
+          l.designation.toLowerCase().includes("mla") || 
+          l.designation.toLowerCase().includes("vidhayak")
+        );
+        setMlaLeader(mla);
+      }
+    } catch (error) {
+      console.error("Error fetching MLA:", error);
+    }
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 75) return "bg-green-500";
@@ -75,25 +111,44 @@ export const HomeContent = () => {
   return (
     <div className="space-y-6">
       {/* My Leader Report */}
-      <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/leaders')}>
+      <Card 
+        className="p-5 hover:shadow-lg transition-shadow cursor-pointer" 
+        onClick={() => mlaLeader && navigate(`/leader/${mlaLeader.id}`)}
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">My Leader Report</h2>
           <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
-            <User className="w-8 h-8 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base mb-1">Ramesh Kumar</h3>
-            <p className="text-sm text-muted-foreground">Ward Councillor</p>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="px-2 py-0.5 rounded-full bg-primary/10">
-                <span className="text-xs font-medium text-primary">BJP</span>
+          {mlaLeader ? (
+            <>
+              <img 
+                src={mlaLeader.image_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400"} 
+                alt={mlaLeader.name}
+                className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base mb-1">{mlaLeader.name}</h3>
+                <p className="text-sm text-muted-foreground">{mlaLeader.designation}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="px-2 py-0.5 rounded-full bg-primary/10">
+                    <span className="text-xs font-medium text-primary">{mlaLeader.party || "Independent"}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
+                <User className="w-8 h-8 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base mb-1">Loading...</h3>
+                <p className="text-sm text-muted-foreground">Fetching your MLA</p>
+              </div>
+            </>
+          )}
         </div>
       </Card>
 
@@ -130,9 +185,9 @@ export const HomeContent = () => {
 
       {/* Area Metrics Detail Dialog */}
       <Dialog open={!!selectedMetric} onOpenChange={() => setSelectedMetric(null)}>
-        <DialogContent className="max-w-[90%] rounded-2xl">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">{selectedMetric?.name} Status</DialogTitle>
+            <DialogTitle className="text-xl font-bold">{selectedMetric?.name} Status</DialogTitle>
           </DialogHeader>
           
           {selectedMetric && (
