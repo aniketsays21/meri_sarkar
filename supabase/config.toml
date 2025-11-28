@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.generate-area-data]
 verify_jwt = true
+
+[functions.search-leader]
+verify_jwt = false
