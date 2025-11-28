@@ -273,15 +273,7 @@ export const HomeContent = ({ onLocationUpdate }: HomeContentProps) => {
       {/* My Area Report */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold">My Area Report</h2>
-            {fromCache && (
-              <Badge variant="secondary" className="text-xs">
-                <Sparkles className="w-3 h-3 mr-1" />
-                Cached
-              </Badge>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold">My Area Report</h2>
           <Button 
             variant="ghost" 
             size="sm" 
