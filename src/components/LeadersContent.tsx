@@ -2,10 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import LeaderCard from "./LeaderCard";
-import { Search, X, User } from "lucide-react";
+import { Search, X, User, Sparkles, Database, Loader2 } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { toast } from "sonner";
 
 interface Leader {
   id: string;
@@ -25,7 +27,15 @@ interface SearchSuggestion {
   designation: string;
   party: string | null;
   constituency: string | null;
+  state: string | null;
   image_url: string | null;
+}
+
+interface SearchResult {
+  leaders: SearchSuggestion[];
+  source: "database" | "ai" | "none" | "error";
+  saved?: boolean;
+  error?: string;
 }
 
 export const LeadersContent = () => {
@@ -36,6 +46,7 @@ export const LeadersContent = () => {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchSource, setSearchSource] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
   const [locationInfo, setLocationInfo] = useState<{
     ward?: string;
@@ -60,34 +71,50 @@ export const LeadersContent = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Search all leaders when query changes
+  // AI-powered search when query changes
   useEffect(() => {
-    const searchAllLeaders = async () => {
+    const searchLeaders = async () => {
       if (searchQuery.trim().length < 2) {
         setSuggestions([]);
         setShowSuggestions(false);
+        setSearchSource("");
         return;
       }
 
       setSearchLoading(true);
+      setShowSuggestions(true);
+      
       try {
-        const { data, error } = await supabase
-          .from("leaders")
-          .select("id, name, designation, party, constituency, image_url")
-          .ilike("name", `%${searchQuery}%`)
-          .limit(10);
+        // Use AI-powered search edge function
+        const { data, error } = await supabase.functions.invoke<SearchResult>("search-leader", {
+          body: { query: searchQuery }
+        });
 
         if (error) throw error;
-        setSuggestions(data || []);
-        setShowSuggestions(true);
+
+        if (data) {
+          setSuggestions(data.leaders || []);
+          setSearchSource(data.source);
+          
+          if (data.source === "ai" && data.saved) {
+            toast.success("New leader data fetched and saved!", {
+              description: `Found ${data.leaders.length} leader(s) from web`
+            });
+          }
+          
+          if (data.error) {
+            toast.error(data.error);
+          }
+        }
       } catch (error) {
         console.error("Error searching leaders:", error);
+        toast.error("Search failed. Please try again.");
       } finally {
         setSearchLoading(false);
       }
     };
 
-    const debounce = setTimeout(searchAllLeaders, 300);
+    const debounce = setTimeout(searchLeaders, 500);
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
@@ -211,14 +238,31 @@ export const LeadersContent = () => {
         {showSuggestions && (
           <Card className="absolute z-50 w-full mt-1 max-h-80 overflow-y-auto shadow-lg border bg-card">
             {searchLoading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                Searching...
+              <div className="p-4 text-center">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Searching database & web...
+                </p>
               </div>
             ) : suggestions.length > 0 ? (
               <div className="py-2">
-                <p className="px-3 py-1 text-xs text-muted-foreground font-medium">
-                  Search Results ({suggestions.length})
-                </p>
+                <div className="px-3 py-1 flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Results ({suggestions.length})
+                  </p>
+                  {searchSource === "ai" && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      AI Fetched
+                    </Badge>
+                  )}
+                  {searchSource === "database" && (
+                    <Badge variant="outline" className="text-xs">
+                      <Database className="w-3 h-3 mr-1" />
+                      From DB
+                    </Badge>
+                  )}
+                </div>
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion.id}
@@ -235,9 +279,9 @@ export const LeadersContent = () => {
                       <p className="text-xs text-muted-foreground truncate">
                         {suggestion.designation} • {suggestion.party || "Independent"}
                       </p>
-                      {suggestion.constituency && (
+                      {(suggestion.constituency || suggestion.state) && (
                         <p className="text-xs text-muted-foreground truncate">
-                          {suggestion.constituency}
+                          {[suggestion.constituency, suggestion.state].filter(Boolean).join(", ")}
                         </p>
                       )}
                     </div>
@@ -249,6 +293,9 @@ export const LeadersContent = () => {
                 <User className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
                   No leaders found for "{searchQuery}"
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Try a different spelling or full name
                 </p>
               </div>
             ) : null}
