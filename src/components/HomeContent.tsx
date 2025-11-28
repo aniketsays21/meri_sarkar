@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User, Calculator, ArrowRight, RefreshCw, AlertTriangle, Sparkles } from "lucide-react";
+import { ChevronRight, ChevronDown, User, Calculator, ArrowRight, RefreshCw, Sparkles, Route, Droplets, Shield, Heart } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { Skeleton } from "./ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,13 +51,23 @@ interface HomeContentProps {
 
 export const HomeContent = ({ onLocationUpdate }: HomeContentProps) => {
   const navigate = useNavigate();
-  const [selectedMetric, setSelectedMetric] = useState<AreaMetric | null>(null);
+  const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
   const [leaders, setLeaders] = useState<any[]>([]);
   const [areaMetrics, setAreaMetrics] = useState<AreaMetric[]>([]);
   const [areaReport, setAreaReport] = useState<AreaReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingArea, setLoadingArea] = useState(true);
   const [fromCache, setFromCache] = useState(false);
+
+  const getMetricIcon = (name: string) => {
+    switch (name) {
+      case "Roads": return <Route className="w-5 h-5" />;
+      case "Water": return <Droplets className="w-5 h-5" />;
+      case "Safety": return <Shield className="w-5 h-5" />;
+      case "Health": return <Heart className="w-5 h-5" />;
+      default: return null;
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -278,25 +288,8 @@ export const HomeContent = ({ onLocationUpdate }: HomeContentProps) => {
           </Button>
         </div>
 
-        {/* Area Summary */}
-        {areaReport?.summary && (
-          <Card className="p-4 mb-4 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/10">
-            <p className="text-sm text-muted-foreground">{areaReport.summary}</p>
-            {areaReport.key_issues && areaReport.key_issues.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {areaReport.key_issues.slice(0, 3).map((issue, i) => (
-                  <Badge key={i} variant="outline" className="text-xs bg-orange-500/10 text-orange-700 border-orange-200">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
-                    {issue}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </Card>
-        )}
-
         {loadingArea ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i} className="p-4">
                 <Skeleton className="h-4 w-16 mb-3" />
@@ -306,99 +299,95 @@ export const HomeContent = ({ onLocationUpdate }: HomeContentProps) => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
             {areaMetrics.map((metric) => (
-              <Card 
-                key={metric.name} 
-                className="p-4 hover:shadow-lg transition-all cursor-pointer active:scale-95"
-                onClick={() => setSelectedMetric(metric)}
+              <Collapsible
+                key={metric.name}
+                open={expandedMetric === metric.name}
+                onOpenChange={(open) => setExpandedMetric(open ? metric.name : null)}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-medium">{metric.name}</p>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className={`text-2xl font-bold ${getScoreTextColor(metric.score)}`}>
-                    {metric.score}
-                  </span>
-                  <span className="text-xs text-muted-foreground">/100</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full ${metric.color} transition-all duration-500`} 
-                    style={{ width: `${metric.score}%` }}
-                  />
-                </div>
-              </Card>
+                <Card className="overflow-hidden">
+                  <CollapsibleTrigger asChild>
+                    <div className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            metric.score >= 75 ? 'bg-green-100 text-green-600' :
+                            metric.score >= 50 ? 'bg-orange-100 text-orange-600' :
+                            'bg-red-100 text-red-600'
+                          }`}>
+                            {getMetricIcon(metric.name)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{metric.name}</p>
+                            <div className="flex items-baseline gap-1">
+                              <span className={`text-lg font-bold ${getScoreTextColor(metric.score)}`}>
+                                {metric.score}
+                              </span>
+                              <span className="text-xs text-muted-foreground">/100</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${metric.color} transition-all duration-500`} 
+                              style={{ width: `${metric.score}%` }}
+                            />
+                          </div>
+                          <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${
+                            expandedMetric === metric.name ? 'rotate-180' : ''
+                          }`} />
+                        </div>
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <div className="px-4 pb-4 pt-2 border-t bg-muted/30 space-y-3">
+                      {metric.details.currentWork && (
+                        <div className="p-3 bg-primary/5 rounded-lg">
+                          <h4 className="font-semibold text-xs mb-1 text-primary">Current Work</h4>
+                          <p className="text-sm text-foreground">{metric.details.currentWork}</p>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {metric.details.contractor && (
+                          <div className="p-2 bg-card rounded-lg border">
+                            <p className="text-xs text-muted-foreground">Contractor</p>
+                            <p className="text-xs font-medium truncate">{metric.details.contractor}</p>
+                          </div>
+                        )}
+                        {metric.details.budget && (
+                          <div className="p-2 bg-card rounded-lg border">
+                            <p className="text-xs text-muted-foreground">Budget</p>
+                            <p className="text-xs font-medium">{metric.details.budget}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {metric.details.pastExperience && (
+                        <div className="p-3 bg-accent/5 rounded-lg">
+                          <h4 className="font-semibold text-xs mb-1">Past Experience</h4>
+                          <p className="text-xs text-muted-foreground">{metric.details.pastExperience}</p>
+                        </div>
+                      )}
+
+                      {metric.details.futureExpectations && (
+                        <div className="p-3 bg-secondary/5 rounded-lg">
+                          <h4 className="font-semibold text-xs mb-1">Future Plans</h4>
+                          <p className="text-xs text-muted-foreground">{metric.details.futureExpectations}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
             ))}
           </div>
         )}
       </div>
-
-      {/* Area Metrics Detail Dialog */}
-      <Dialog open={!!selectedMetric} onOpenChange={() => setSelectedMetric(null)}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{selectedMetric?.name} Status</DialogTitle>
-          </DialogHeader>
-          
-          {selectedMetric && (
-            <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-3">
-                <div className={`text-3xl font-bold ${getScoreTextColor(selectedMetric.score)}`}>
-                  {selectedMetric.score}/100
-                </div>
-                <div className="flex-1">
-                  <div className="h-3 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${selectedMetric.color}`} 
-                      style={{ width: `${selectedMetric.score}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {selectedMetric.details.currentWork && (
-                  <div className="p-4 bg-primary/5 rounded-xl">
-                    <h4 className="font-semibold text-sm mb-2 text-primary">Current Work</h4>
-                    <p className="text-sm text-foreground">{selectedMetric.details.currentWork}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  {selectedMetric.details.contractor && (
-                    <div className="p-3 bg-card rounded-lg border">
-                      <p className="text-xs text-muted-foreground mb-1">Contractor</p>
-                      <p className="text-sm font-medium">{selectedMetric.details.contractor}</p>
-                    </div>
-                  )}
-                  {selectedMetric.details.budget && (
-                    <div className="p-3 bg-card rounded-lg border">
-                      <p className="text-xs text-muted-foreground mb-1">Budget</p>
-                      <p className="text-sm font-medium">{selectedMetric.details.budget}</p>
-                    </div>
-                  )}
-                </div>
-
-                {selectedMetric.details.pastExperience && (
-                  <div className="p-4 bg-accent/5 rounded-xl">
-                    <h4 className="font-semibold text-sm mb-2">Past Experience</h4>
-                    <p className="text-sm text-muted-foreground">{selectedMetric.details.pastExperience}</p>
-                  </div>
-                )}
-
-                {selectedMetric.details.futureExpectations && (
-                  <div className="p-4 bg-secondary/5 rounded-xl">
-                    <h4 className="font-semibold text-sm mb-2">Future Expectations</h4>
-                    <p className="text-sm text-muted-foreground">{selectedMetric.details.futureExpectations}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Policies for You */}
       <div>
