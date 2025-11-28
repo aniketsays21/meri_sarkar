@@ -38,15 +38,8 @@ serve(async (req) => {
       console.error("DB search error:", dbError);
     }
 
-    if (dbLeaders && dbLeaders.length > 0) {
-      console.log("Found leaders in DB:", dbLeaders.length);
-      return new Response(
-        JSON.stringify({ leaders: dbLeaders, source: "database" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log("Found leaders in DB:", dbLeaders?.length || 0);
 
-    // Step 2: Not found in DB - Use Gemini to search for Indian political leader
     console.log("No results in DB, searching with AI...");
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -170,8 +163,24 @@ serve(async (req) => {
       );
     }
 
-    // Step 3: Save new leaders to database
-    const leadersToInsert = parsedLeaders.map((leader: any) => ({
+    // Step 3: Filter out AI leaders that are already in DB
+    const dbLeaderNames = (dbLeaders || []).map(l => l.name.toLowerCase().trim());
+    const newLeaders = parsedLeaders.filter((leader: any) => 
+      !dbLeaderNames.includes(leader.name.toLowerCase().trim())
+    );
+
+    console.log("New leaders from AI to insert:", newLeaders.length);
+
+    if (newLeaders.length === 0) {
+      // All AI results are already in DB, just return DB results
+      return new Response(
+        JSON.stringify({ leaders: dbLeaders || [], source: "database" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Step 4: Save new leaders to database
+    const leadersToInsert = newLeaders.map((leader: any) => ({
       name: leader.name,
       designation: leader.designation || "Political Leader",
       party: leader.party || null,
@@ -196,11 +205,15 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Insert error:", insertError);
-      // Return AI results even if DB insert fails
+      // Return merged results (DB + AI) even if insert fails
+      const combinedLeaders = [
+        ...(dbLeaders || []),
+        ...leadersToInsert.map((l: any, i: number) => ({ ...l, id: `temp-${i}` }))
+      ];
       return new Response(
         JSON.stringify({ 
-          leaders: leadersToInsert.map((l: any, i: number) => ({ ...l, id: `temp-${i}` })), 
-          source: "ai",
+          leaders: combinedLeaders, 
+          source: "mixed",
           saved: false 
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -209,8 +222,23 @@ serve(async (req) => {
 
     console.log("Leaders saved successfully");
 
+    // Step 5: Return merged results (DB leaders + newly inserted AI leaders)
+    const allLeaders = [
+      ...(dbLeaders || []),
+      ...(insertedLeaders || [])
+    ];
+
     return new Response(
-      JSON.stringify({ leaders: insertedLeaders, source: "ai", saved: true }),
+      JSON.stringify({ 
+        leaders: allLeaders, 
+        source: "mixed", 
+        saved: true,
+        stats: {
+          fromDB: dbLeaders?.length || 0,
+          fromAI: insertedLeaders?.length || 0,
+          total: allLeaders.length
+        }
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
