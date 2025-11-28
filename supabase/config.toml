@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.fetch-leaders]
 verify_jwt = true
+
+[functions.generate-area-data]
+verify_jwt = true
