@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.search-leader]
 verify_jwt = false
+
+[functions.populate-famous-leaders]
+verify_jwt = false
