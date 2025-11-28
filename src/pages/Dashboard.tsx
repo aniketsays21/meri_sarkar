@@ -10,6 +10,7 @@ import {
   Vote,
   Newspaper,
   Calculator,
+  LogOut,
 } from "lucide-react";
 import { HomeContent } from "@/components/HomeContent";
 import { LeadersContent } from "@/components/LeadersContent";
@@ -122,9 +123,21 @@ const Dashboard = () => {
               </span>
             </div>
           </div>
-          <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
-            <Bell className="w-5 h-5 text-foreground" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
+              <Bell className="w-5 h-5 text-foreground" />
+            </button>
+            <button 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = '/onboarding';
+              }}
+              className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center transition-smooth hover:bg-destructive/20"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5 text-destructive" />
+            </button>
+          </div>
         </div>
       </div>
 
