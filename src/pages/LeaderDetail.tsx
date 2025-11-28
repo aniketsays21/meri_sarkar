@@ -11,7 +11,7 @@ import {
   Share2,
   TrendingUp,
   Users,
-  IndianRupee,
+  DollarSign,
   MessageCircle,
   CheckCircle2,
   Clock,
@@ -214,7 +214,7 @@ const LeaderDetail = () => {
 
             <div className="text-center">
               <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-2">
-                <IndianRupee className="w-6 h-6 text-accent" />
+                <DollarSign className="w-6 h-6 text-accent" />
               </div>
               <p className="text-2xl font-display font-bold text-accent">
                 {leader.funds_utilized || 0}%
@@ -413,55 +413,35 @@ const LeaderDetail = () => {
             Educational Background
           </h2>
           <div className="space-y-3">
-            {(() => {
-              // Parse education if it's a JSON string
-              let educationData = leader.education;
-              if (typeof educationData === 'string') {
-                try {
-                  educationData = JSON.parse(educationData);
-                } catch {
-                  // If parsing fails, show as plain text
-                  return (
-                    <Card className="p-4 shadow-card">
-                      <p className="text-sm leading-relaxed">{leader.education as string}</p>
-                    </Card>
-                  );
-                }
-              }
-              
-              if (Array.isArray(educationData) && educationData.length > 0) {
-                return educationData.map((edu: any, index: number) => (
-                  <Card key={index} className="p-4 shadow-card">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <GraduationCap className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-base mb-1.5">{edu.degree}</h3>
-                        <p className="text-sm text-foreground mb-2">{edu.institution || edu.university}</p>
-                        {(edu.field || edu.specialization) && (
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {edu.field || edu.specialization}
-                          </p>
-                        )}
-                        <div className="inline-block px-3 py-1 rounded-md bg-primary/10">
-                          <p className="text-xs font-semibold text-primary">
-                            {edu.year || `${edu.start_year} - ${edu.end_year || "Completed"}`}
-                          </p>
-                        </div>
+            {typeof leader.education === 'string' ? (
+              <Card className="p-4 shadow-card">
+                <p className="text-sm leading-relaxed">{leader.education}</p>
+              </Card>
+            ) : Array.isArray(leader.education) && leader.education.length > 0 ? (
+              leader.education.map((edu: any, index: number) => (
+                <Card key={index} className="p-4 shadow-card">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <GraduationCap className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-base mb-1.5">{edu.degree}</h3>
+                      <p className="text-sm text-foreground mb-2">{edu.institution || edu.university}</p>
+                      {(edu.field || edu.specialization) && (
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {edu.field || edu.specialization}
+                        </p>
+                      )}
+                      <div className="inline-block px-3 py-1 rounded-md bg-primary/10">
+                        <p className="text-xs font-semibold text-primary">
+                          {edu.year || `${edu.start_year} - ${edu.end_year || "Completed"}`}
+                        </p>
                       </div>
                     </div>
-                  </Card>
-                ));
-              }
-              
-              // Fallback for non-array education data
-              return (
-                <Card className="p-4 shadow-card">
-                  <p className="text-sm leading-relaxed">{String(leader.education)}</p>
+                  </div>
                 </Card>
-              );
-            })()}
+              ))
+            ) : null}
           </div>
         </div>
       )}

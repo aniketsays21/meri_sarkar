@@ -67,50 +67,18 @@ Deno.serve(async (req) => {
 
     console.log('Found constituencies:', constituencies);
 
-    // Step 3: Get leaders - first try by constituency, then fallback to state-based or all famous leaders
+    // Step 3: Get leaders for these constituencies
     const constituencyIds = constituencies?.map(c => c.id) || [];
     
-    let leaders: any[] = [];
-    
-    // First try to get leaders by constituency_id
-    if (constituencyIds.length > 0) {
-      const { data: constituencyLeaders, error: leadersError } = await supabase
-        .from('leaders')
-        .select('*')
-        .in('constituency_id', constituencyIds)
-        .order('hierarchy_level', { ascending: false });
+    const { data: leaders, error: leadersError } = await supabase
+      .from('leaders')
+      .select('*')
+      .in('constituency_id', constituencyIds)
+      .order('hierarchy_level', { ascending: false });
 
-      if (leadersError) {
-        console.error('Error fetching leaders by constituency:', leadersError);
-      } else {
-        leaders = constituencyLeaders || [];
-      }
-    }
-
-    // If no leaders found by constituency, try to match by state
-    if (leaders.length === 0 && pincodeData.state) {
-      const { data: stateLeaders, error: stateError } = await supabase
-        .from('leaders')
-        .select('*')
-        .ilike('state', `%${pincodeData.state}%`)
-        .order('hierarchy_level', { ascending: false });
-
-      if (!stateError && stateLeaders) {
-        leaders = stateLeaders;
-      }
-    }
-
-    // If still no leaders, return all famous leaders (fallback for demo)
-    if (leaders.length === 0) {
-      const { data: allLeaders, error: allError } = await supabase
-        .from('leaders')
-        .select('*')
-        .order('hierarchy_level', { ascending: false })
-        .limit(10);
-
-      if (!allError && allLeaders) {
-        leaders = allLeaders;
-      }
+    if (leadersError) {
+      console.error('Error fetching leaders:', leadersError);
+      throw leadersError;
     }
 
     console.log('Found leaders:', leaders?.length);

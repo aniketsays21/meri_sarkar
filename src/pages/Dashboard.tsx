@@ -10,7 +10,6 @@ import {
   Vote,
   Newspaper,
   Calculator,
-  LogOut,
 } from "lucide-react";
 import { HomeContent } from "@/components/HomeContent";
 import { LeadersContent } from "@/components/LeadersContent";
@@ -18,20 +17,11 @@ import { ImpactContent } from "@/components/ImpactContent";
 import { PollContent } from "@/components/PollContent";
 import { NewsContent } from "@/components/NewsContent";
 
-interface LocationData {
-  state: string;
-  district: string;
-  assembly_constituency: string;
-  parliamentary_constituency: string;
-  ward: string;
-}
-
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("home");
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [userPincode, setUserPincode] = useState("");
-  const [location, setLocation] = useState<LocationData | null>(null);
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -43,11 +33,11 @@ const Dashboard = () => {
             .from('profiles')
             .select('name, pincode')
             .eq('user_id', user.id)
-            .maybeSingle();
+            .single();
           
           if (profile) {
             setUserName(profile.name);
-            setUserPincode(profile.pincode || "560029");
+            setUserPincode(profile.pincode || "400053");
           }
         }
       } catch (error) {
@@ -59,22 +49,6 @@ const Dashboard = () => {
 
     fetchUserProfile();
   }, []);
-
-  const handleLocationUpdate = (locationData: LocationData | null) => {
-    if (locationData) {
-      setLocation(locationData);
-    }
-  };
-
-  const getLocationDisplay = () => {
-    if (location) {
-      const parts = [];
-      if (location.assembly_constituency) parts.push(location.assembly_constituency);
-      if (location.district && location.district !== location.assembly_constituency) parts.push(location.district);
-      return parts.length > 0 ? parts.join(", ") : `Pincode ${userPincode}`;
-    }
-    return `Pincode ${userPincode}`;
-  };
 
   if (loading) {
     return (
@@ -110,40 +84,23 @@ const Dashboard = () => {
       <div className="p-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">
+            <h1 className="text-3xl font-display font-bold text-foreground">
               Hi {userName || 'there'}! 👋
             </h1>
             <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
-              <MapPin className="w-4 h-4 text-primary" />
-              <span className="truncate max-w-[220px]">
-                {getLocationDisplay()}
-                {location?.state && (
-                  <span className="text-primary/70"> • {location.state}</span>
-                )}
-              </span>
+              <MapPin className="w-4 h-4" />
+              <span>Mumbai North - {userPincode}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
-              <Bell className="w-5 h-5 text-foreground" />
-            </button>
-            <button 
-              onClick={async () => {
-                await supabase.auth.signOut();
-                window.location.href = '/onboarding';
-              }}
-              className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center transition-smooth hover:bg-destructive/20"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5 text-destructive" />
-            </button>
-          </div>
+          <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
+            <Bell className="w-5 h-5 text-foreground" />
+          </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-5">
-          {activeTab === "home" && <HomeContent onLocationUpdate={handleLocationUpdate} />}
+          {activeTab === "home" && <HomeContent />}
           {activeTab === "leaders" && <LeadersContent />}
           {activeTab === "impact" && <ImpactContent />}
           {activeTab === "poll" && <PollContent />}
