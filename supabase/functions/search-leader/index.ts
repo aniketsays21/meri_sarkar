@@ -40,6 +40,13 @@ serve(async (req) => {
 
     console.log("Found leaders in DB:", dbLeaders?.length || 0);
 
+    if (dbLeaders && dbLeaders.length > 0) {
+      return new Response(
+        JSON.stringify({ leaders: dbLeaders, source: "database" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log("No results in DB, searching with AI...");
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -51,14 +58,14 @@ serve(async (req) => {
       );
     }
 
-    const aiPrompt = `Find ALL Indian politicians whose name contains "${query}". 
+    const aiPrompt = `Find the MOST FAMOUS Indian politician whose name contains "${query}". 
     
     CRITICAL INSTRUCTIONS:
-    1. Return ALL matching politicians, not just the most famous one
-    2. Include variations of the name (e.g., "Nitin" should return ALL politicians named Nitin - Nitin Gadkari, Nitin Patel, etc.)
-    3. For EACH politician, provide COMPLETE detailed information
+    1. Return ONLY the most prominent/famous politician with that name
+    2. Provide COMPLETE detailed information about this leader
+    3. Focus on national or state-level leaders (MPs, MLAs, Chief Ministers, Ministers, etc.)
     
-    Return ONLY a JSON array with ALL matching Indian politicians. For each leader provide:
+    Return ONLY a JSON array with a SINGLE object for the most famous politician. Provide:
     - name: Full official name
     - designation: COMPLETE current position (e.g., "Prime Minister of India", "Union Minister for Road Transport & Highways", "Chief Minister of Karnataka", "Member of Parliament (Lok Sabha)", "Member of Legislative Assembly (MLA)")
     - party: Full party name (e.g., "Bharatiya Janata Party (BJP)", "Indian National Congress (INC)", "Aam Aadmi Party (AAP)")
@@ -72,16 +79,14 @@ serve(async (req) => {
     - criminal_cases: Number of pending criminal cases as number (0 if none)
     
     IMPORTANT: 
-    - Return ALL politicians matching the query, not just one
-    - If query is "Nitin", return Nitin Gadkari, Nitin Patel, and ALL other politicians named Nitin
-    - If query is "Narendra", return Narendra Modi, Narendra Singh Tomar, etc.
+    - Return ONLY the most famous politician (e.g., if query is "Nitin", return only Nitin Gadkari)
+    - If query is "Narendra", return only Narendra Modi
     - Return empty array [] ONLY if absolutely no politician matches
-    - Return ONLY valid JSON array, no markdown, no explanation
+    - Return ONLY valid JSON array with ONE object, no markdown, no explanation
     
     Example format:
     [
-      {"name": "Nitin Jairam Gadkari", "designation": "Union Minister for Road Transport & Highways", "party": "Bharatiya Janata Party (BJP)", "constituency": "Nagpur", "state": "Maharashtra", "bio": "A seasoned politician known for his work in infrastructure development, particularly road construction. He previously served as the President of the BJP and is currently serving his second term as Union Minister.", "attendance": 88, "funds_utilized": 85, "questions_raised": 45, "assets": 150000000, "criminal_cases": 0},
-      {"name": "Nitin Patel", "designation": "Deputy Chief Minister of Gujarat", "party": "Bharatiya Janata Party (BJP)", "constituency": "Mehsana", "state": "Gujarat", "bio": "Senior BJP leader serving as Deputy Chief Minister of Gujarat. Known for his work in agriculture and rural development.", "attendance": 92, "funds_utilized": 80, "questions_raised": 38, "assets": 80000000, "criminal_cases": 0}
+      {"name": "Nitin Jairam Gadkari", "designation": "Union Minister for Road Transport & Highways", "party": "Bharatiya Janata Party (BJP)", "constituency": "Nagpur", "state": "Maharashtra", "bio": "A seasoned politician known for his work in infrastructure development, particularly road construction. He previously served as the President of the BJP and is currently serving his second term as Union Minister.", "attendance": 88, "funds_utilized": 85, "questions_raised": 45, "assets": 150000000, "criminal_cases": 0}
     ]`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -93,7 +98,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-pro",
         messages: [
-          { role: "system", content: "You are an expert on Indian politics with comprehensive knowledge of ALL Indian politicians at national, state, and local levels. Always return complete, detailed information for ALL matching politicians. Return only valid JSON arrays." },
+          { role: "system", content: "You are an expert on Indian politics with comprehensive knowledge of prominent Indian politicians at national and state levels. Always return complete, detailed information for the MOST FAMOUS politician matching the query. Return only valid JSON arrays." },
           { role: "user", content: aiPrompt }
         ],
       }),
@@ -163,24 +168,8 @@ serve(async (req) => {
       );
     }
 
-    // Step 3: Filter out AI leaders that are already in DB
-    const dbLeaderNames = (dbLeaders || []).map(l => l.name.toLowerCase().trim());
-    const newLeaders = parsedLeaders.filter((leader: any) => 
-      !dbLeaderNames.includes(leader.name.toLowerCase().trim())
-    );
-
-    console.log("New leaders from AI to insert:", newLeaders.length);
-
-    if (newLeaders.length === 0) {
-      // All AI results are already in DB, just return DB results
-      return new Response(
-        JSON.stringify({ leaders: dbLeaders || [], source: "database" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Step 4: Save new leaders to database
-    const leadersToInsert = newLeaders.map((leader: any) => ({
+    // Step 3: Save to database
+    const leadersToInsert = parsedLeaders.map((leader: any) => ({
       name: leader.name,
       designation: leader.designation || "Political Leader",
       party: leader.party || null,
@@ -205,40 +194,20 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Insert error:", insertError);
-      // Return merged results (DB + AI) even if insert fails
-      const combinedLeaders = [
-        ...(dbLeaders || []),
-        ...leadersToInsert.map((l: any, i: number) => ({ ...l, id: `temp-${i}` }))
-      ];
       return new Response(
         JSON.stringify({ 
-          leaders: combinedLeaders, 
-          source: "mixed",
+          leaders: leadersToInsert.map((l: any, i: number) => ({ ...l, id: `temp-${i}` })), 
+          source: "ai",
           saved: false 
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Leaders saved successfully");
-
-    // Step 5: Return merged results (DB leaders + newly inserted AI leaders)
-    const allLeaders = [
-      ...(dbLeaders || []),
-      ...(insertedLeaders || [])
-    ];
+    console.log("Leader saved successfully");
 
     return new Response(
-      JSON.stringify({ 
-        leaders: allLeaders, 
-        source: "mixed", 
-        saved: true,
-        stats: {
-          fromDB: dbLeaders?.length || 0,
-          fromAI: insertedLeaders?.length || 0,
-          total: allLeaders.length
-        }
-      }),
+      JSON.stringify({ leaders: insertedLeaders, source: "ai", saved: true }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
