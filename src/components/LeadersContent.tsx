@@ -2,12 +2,10 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import LeaderCard from "./LeaderCard";
-import { Search, X, User, Sparkles, Database, Loader2 } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { toast } from "sonner";
 
 interface Leader {
   id: string;
@@ -46,7 +44,6 @@ export const LeadersContent = () => {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchSource, setSearchSource] = useState<string>("");
   const searchRef = useRef<HTMLDivElement>(null);
   const [locationInfo, setLocationInfo] = useState<{
     ward?: string;
@@ -77,7 +74,6 @@ export const LeadersContent = () => {
       if (searchQuery.trim().length < 2) {
         setSuggestions([]);
         setShowSuggestions(false);
-        setSearchSource("");
         return;
       }
 
@@ -94,21 +90,9 @@ export const LeadersContent = () => {
 
         if (data) {
           setSuggestions(data.leaders || []);
-          setSearchSource(data.source);
-          
-          if (data.source === "ai" && data.saved) {
-            toast.success("New leader data fetched and saved!", {
-              description: `Found ${data.leaders.length} leader(s) from web`
-            });
-          }
-          
-          if (data.error) {
-            toast.error(data.error);
-          }
         }
       } catch (error) {
         console.error("Error searching leaders:", error);
-        toast.error("Search failed. Please try again.");
       } finally {
         setSearchLoading(false);
       }
@@ -240,62 +224,41 @@ export const LeadersContent = () => {
             {searchLoading ? (
               <div className="p-4 text-center">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  Searching database & web...
-                </p>
+                <p className="text-sm text-muted-foreground">Searching...</p>
               </div>
             ) : suggestions.length > 0 ? (
               <div className="py-2">
-                <div className="px-3 py-1 flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground font-medium">
-                    Results ({suggestions.length})
+                <div className="px-4 py-2 flex items-center justify-between">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+                    Search Results
                   </p>
-                  {searchSource === "ai" && (
-                    <Badge variant="secondary" className="text-xs">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      AI Fetched
-                    </Badge>
-                  )}
-                  {searchSource === "database" && (
-                    <Badge variant="outline" className="text-xs">
-                      <Database className="w-3 h-3 mr-1" />
-                      From DB
-                    </Badge>
-                  )}
+                  <button
+                    onClick={clearSearch}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Clear
+                  </button>
                 </div>
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion.id}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full px-3 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors text-left border-t border-border/50"
                   >
-                    <img
-                      src={suggestion.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${suggestion.name}`}
-                      alt={suggestion.name}
-                      className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                    />
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{suggestion.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {suggestion.designation} • {suggestion.party || "Independent"}
+                      <p className="font-semibold text-base">{suggestion.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {suggestion.party || "Independent"} • {suggestion.designation}
                       </p>
-                      {(suggestion.constituency || suggestion.state) && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          {[suggestion.constituency, suggestion.state].filter(Boolean).join(", ")}
-                        </p>
-                      )}
                     </div>
+                    <span className="text-muted-foreground ml-2">›</span>
                   </button>
                 ))}
               </div>
             ) : searchQuery.length >= 2 ? (
               <div className="p-4 text-center">
-                <User className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
                   No leaders found for "{searchQuery}"
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Try a different spelling or full name
                 </p>
               </div>
             ) : null}
