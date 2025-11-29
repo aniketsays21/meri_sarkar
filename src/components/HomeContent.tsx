@@ -1,70 +1,59 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User, Calculator, ArrowRight } from "lucide-react";
+import { ChevronRight, User, Calculator, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Skeleton } from "./ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-const areaMetrics = [
-  { 
-    name: "Roads", 
-    score: 72, 
-    color: "bg-blue-500",
-    details: {
-      currentWork: "Resurfacing of MG Road, 2.5 km stretch",
-      contractor: "ABC Construction Ltd",
-      budget: "₹2.5 Crores",
-      pastExperience: "Previous road work completed 2 months ahead of schedule with good quality materials",
-      futureExpectations: "Expected completion by March 2025. New drainage system to be installed alongside"
-    }
-  },
-  { 
-    name: "Water", 
-    score: 85, 
-    color: "bg-cyan-500",
-    details: {
-      currentWork: "Installation of new water pipeline in Ward 12",
-      contractor: "WaterTech Solutions",
-      budget: "₹1.8 Crores",
-      pastExperience: "Water supply improved by 40% after last project. Minimal leakage issues",
-      futureExpectations: "24/7 water supply expected from April 2025 onwards"
-    }
-  },
-  { 
-    name: "Safety", 
-    score: 68, 
-    color: "bg-orange-500",
-    details: {
-      currentWork: "CCTV camera installation at 50 locations",
-      contractor: "SecureCity Tech Pvt Ltd",
-      budget: "₹85 Lakhs",
-      pastExperience: "Crime rate reduced by 25% in areas with CCTV coverage",
-      futureExpectations: "All cameras to be connected to central monitoring by February 2025"
-    }
-  },
-  { 
-    name: "Health", 
-    score: 78, 
-    color: "bg-green-500",
-    details: {
-      currentWork: "Expansion of Primary Health Center with 20 new beds",
-      contractor: "MediCare Infrastructure",
-      budget: "₹3.2 Crores",
-      pastExperience: "Current PHC serves 500+ patients daily. Staff shortage is a concern",
-      futureExpectations: "New facility to double capacity and add emergency services by May 2025"
-    }
-  },
-];
+interface AreaDetails {
+  currentWork: string;
+  contractor: string;
+  budget: string;
+  pastExperience: string;
+  futureExpectations: string;
+}
+
+interface AreaMetric {
+  name: string;
+  score: number;
+  color: string;
+  details: AreaDetails;
+}
+
+interface AreaReport {
+  id: string;
+  pincode: string;
+  roads_score: number;
+  roads_details: AreaDetails;
+  water_score: number;
+  water_details: AreaDetails;
+  safety_score: number;
+  safety_details: AreaDetails;
+  health_score: number;
+  health_details: AreaDetails;
+  overall_score: number;
+  summary: string;
+  key_issues: string[];
+  recent_developments: string[];
+  generated_at: string;
+  expires_at: string;
+}
 
 export const HomeContent = () => {
   const navigate = useNavigate();
-  const [selectedMetric, setSelectedMetric] = useState<typeof areaMetrics[0] | null>(null);
+  const [selectedMetric, setSelectedMetric] = useState<AreaMetric | null>(null);
   const [mlaLeader, setMlaLeader] = useState<any[]>([]);
+  const [areaReport, setAreaReport] = useState<AreaReport | null>(null);
+  const [loadingReport, setLoadingReport] = useState(true);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   useEffect(() => {
     fetchMLA();
+    fetchAreaReport();
   }, []);
 
   const fetchMLA = async () => {
@@ -85,11 +74,52 @@ export const HomeContent = () => {
       });
 
       if (data?.leaders) {
-        // Set all leaders (MLA, MP, Councillor, etc.)
         setMlaLeader(data.leaders);
       }
     } catch (error) {
       console.error("Error fetching leaders:", error);
+    }
+  };
+
+  const fetchAreaReport = async () => {
+    try {
+      setLoadingReport(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoadingReport(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pincode")
+        .eq("user_id", user.id)
+        .single();
+
+      const pincode = profile?.pincode;
+      if (!pincode) {
+        setLoadingReport(false);
+        return;
+      }
+
+      setGeneratingReport(true);
+      
+      const { data, error } = await supabase.functions.invoke("generate-area-report", {
+        body: { pincode }
+      });
+
+      if (error) {
+        console.error("Error fetching area report:", error);
+        toast.error("Failed to load area report");
+      } else if (data) {
+        setAreaReport(data);
+      }
+    } catch (error) {
+      console.error("Error fetching area report:", error);
+      toast.error("Failed to load area report");
+    } finally {
+      setLoadingReport(false);
+      setGeneratingReport(false);
     }
   };
 
@@ -104,6 +134,48 @@ export const HomeContent = () => {
     if (score >= 50) return "text-orange-600";
     return "text-red-600";
   };
+
+  const getMetricColor = (name: string) => {
+    switch (name) {
+      case "Roads": return "bg-blue-500";
+      case "Water": return "bg-cyan-500";
+      case "Safety": return "bg-orange-500";
+      case "Health": return "bg-green-500";
+      default: return "bg-primary";
+    }
+  };
+
+  const getAreaMetrics = (): AreaMetric[] => {
+    if (!areaReport) return [];
+    return [
+      { 
+        name: "Roads", 
+        score: areaReport.roads_score || 0, 
+        color: "bg-blue-500",
+        details: areaReport.roads_details || {} as AreaDetails
+      },
+      { 
+        name: "Water", 
+        score: areaReport.water_score || 0, 
+        color: "bg-cyan-500",
+        details: areaReport.water_details || {} as AreaDetails
+      },
+      { 
+        name: "Safety", 
+        score: areaReport.safety_score || 0, 
+        color: "bg-orange-500",
+        details: areaReport.safety_details || {} as AreaDetails
+      },
+      { 
+        name: "Health", 
+        score: areaReport.health_score || 0, 
+        color: "bg-green-500",
+        details: areaReport.health_details || {} as AreaDetails
+      },
+    ];
+  };
+
+  const areaMetrics = getAreaMetrics();
 
   return (
     <div className="space-y-6">
@@ -157,33 +229,136 @@ export const HomeContent = () => {
 
       {/* My Area Report */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">My Area Report</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {areaMetrics.map((metric) => (
-            <Card 
-              key={metric.name} 
-              className="p-4 hover:shadow-lg transition-all cursor-pointer active:scale-95"
-              onClick={() => setSelectedMetric(metric)}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">My Area Report</h2>
+          {areaReport && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={fetchAreaReport}
+              disabled={loadingReport}
+              className="text-muted-foreground"
             >
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium">{metric.name}</p>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </div>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className={`text-2xl font-bold ${getScoreTextColor(metric.score)}`}>
-                  {metric.score}
-                </span>
-                <span className="text-xs text-muted-foreground">/100</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${metric.color} transition-all duration-500`} 
-                  style={{ width: `${metric.score}%` }}
-                />
-              </div>
-            </Card>
-          ))}
+              <RefreshCw className={`w-4 h-4 ${loadingReport ? 'animate-spin' : ''}`} />
+            </Button>
+          )}
         </div>
+
+        {loadingReport ? (
+          <div className="space-y-4">
+            {generatingReport && (
+              <Card className="p-4 bg-primary/5 border-primary/20">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="w-5 h-5 text-primary animate-spin" />
+                  <div>
+                    <p className="text-sm font-medium">Generating your area report...</p>
+                    <p className="text-xs text-muted-foreground">This may take a few seconds</p>
+                  </div>
+                </div>
+              </Card>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="p-4">
+                  <Skeleton className="h-4 w-16 mb-3" />
+                  <Skeleton className="h-8 w-12 mb-2" />
+                  <Skeleton className="h-2 w-full" />
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : areaReport ? (
+          <>
+            {/* Overall Score Card */}
+            <Card className="p-4 mb-4 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Overall Score</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-3xl font-bold ${getScoreTextColor(areaReport.overall_score || 0)}`}>
+                      {areaReport.overall_score || 0}
+                    </span>
+                    <span className="text-sm text-muted-foreground">/100</span>
+                  </div>
+                </div>
+                <div className="w-16 h-16 relative">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="hsl(var(--muted))"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="3"
+                      strokeDasharray={`${areaReport.overall_score || 0}, 100`}
+                    />
+                  </svg>
+                </div>
+              </div>
+              {areaReport.summary && (
+                <p className="text-sm text-muted-foreground mt-3">{areaReport.summary}</p>
+              )}
+            </Card>
+
+            {/* Individual Metrics */}
+            <div className="grid grid-cols-2 gap-3">
+              {areaMetrics.map((metric) => (
+                <Card 
+                  key={metric.name} 
+                  className="p-4 hover:shadow-lg transition-all cursor-pointer active:scale-95"
+                  onClick={() => setSelectedMetric(metric)}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-medium">{metric.name}</p>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className={`text-2xl font-bold ${getScoreTextColor(metric.score)}`}>
+                      {metric.score}
+                    </span>
+                    <span className="text-xs text-muted-foreground">/100</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full ${metric.color} transition-all duration-500`} 
+                      style={{ width: `${metric.score}%` }}
+                    />
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Key Issues */}
+            {areaReport.key_issues && areaReport.key_issues.length > 0 && (
+              <Card className="p-4 mt-4">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-orange-500" />
+                  Key Issues
+                </h3>
+                <ul className="space-y-2">
+                  {areaReport.key_issues.map((issue, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="text-orange-500 mt-1">•</span>
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+          </>
+        ) : (
+          <Card className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground mb-3">Unable to load area report</p>
+            <Button variant="outline" size="sm" onClick={fetchAreaReport}>
+              Try Again
+            </Button>
+          </Card>
+        )}
       </div>
 
       {/* Area Metrics Detail Dialog */}
@@ -210,31 +385,43 @@ export const HomeContent = () => {
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-primary/5 rounded-xl">
-                  <h4 className="font-semibold text-sm mb-2 text-primary">Current Work</h4>
-                  <p className="text-sm text-foreground">{selectedMetric.details.currentWork}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-card rounded-lg border">
-                    <p className="text-xs text-muted-foreground mb-1">Contractor</p>
-                    <p className="text-sm font-medium">{selectedMetric.details.contractor}</p>
+                {selectedMetric.details?.currentWork && (
+                  <div className="p-4 bg-primary/5 rounded-xl">
+                    <h4 className="font-semibold text-sm mb-2 text-primary">Current Work</h4>
+                    <p className="text-sm text-foreground">{selectedMetric.details.currentWork}</p>
                   </div>
-                  <div className="p-3 bg-card rounded-lg border">
-                    <p className="text-xs text-muted-foreground mb-1">Budget</p>
-                    <p className="text-sm font-medium">{selectedMetric.details.budget}</p>
+                )}
+
+                {(selectedMetric.details?.contractor || selectedMetric.details?.budget) && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedMetric.details?.contractor && (
+                      <div className="p-3 bg-card rounded-lg border">
+                        <p className="text-xs text-muted-foreground mb-1">Contractor</p>
+                        <p className="text-sm font-medium">{selectedMetric.details.contractor}</p>
+                      </div>
+                    )}
+                    {selectedMetric.details?.budget && (
+                      <div className="p-3 bg-card rounded-lg border">
+                        <p className="text-xs text-muted-foreground mb-1">Budget</p>
+                        <p className="text-sm font-medium">{selectedMetric.details.budget}</p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
-                <div className="p-4 bg-accent/5 rounded-xl">
-                  <h4 className="font-semibold text-sm mb-2">Past Experience</h4>
-                  <p className="text-sm text-muted-foreground">{selectedMetric.details.pastExperience}</p>
-                </div>
+                {selectedMetric.details?.pastExperience && (
+                  <div className="p-4 bg-accent/5 rounded-xl">
+                    <h4 className="font-semibold text-sm mb-2">Past Experience</h4>
+                    <p className="text-sm text-muted-foreground">{selectedMetric.details.pastExperience}</p>
+                  </div>
+                )}
 
-                <div className="p-4 bg-secondary/5 rounded-xl">
-                  <h4 className="font-semibold text-sm mb-2">Future Expectations</h4>
-                  <p className="text-sm text-muted-foreground">{selectedMetric.details.futureExpectations}</p>
-                </div>
+                {selectedMetric.details?.futureExpectations && (
+                  <div className="p-4 bg-secondary/5 rounded-xl">
+                    <h4 className="font-semibold text-sm mb-2">Future Expectations</h4>
+                    <p className="text-sm text-muted-foreground">{selectedMetric.details.futureExpectations}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
