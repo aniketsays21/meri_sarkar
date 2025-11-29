@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import LeaderCard from "./LeaderCard";
-import { Search, X } from "lucide-react";
+import { Search, X, RefreshCw, Users } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -21,14 +21,25 @@ interface Leader {
   hierarchy_level: number | null;
 }
 
+const HIERARCHY_LABELS: Record<number, { en: string; hi: string; emoji: string }> = {
+  6: { en: "Prime Minister", hi: "प्रधानमंत्री", emoji: "🇮🇳" },
+  5: { en: "Governor", hi: "राज्यपाल", emoji: "🎩" },
+  4: { en: "Chief Minister", hi: "मुख्यमंत्री", emoji: "👑" },
+  3: { en: "Member of Parliament", hi: "सांसद", emoji: "🏛️" },
+  2: { en: "MLA", hi: "विधायक", emoji: "🏢" },
+  1: { en: "Ward Councillor", hi: "पार्षद", emoji: "🏘️" },
+};
+
 export const LeadersContent = () => {
   const navigate = useNavigate();
   const [localLeaders, setLocalLeaders] = useState<Leader[]>([]);
   const [searchResults, setSearchResults] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState("Loading your leaders...");
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [hasMoreToLoad, setHasMoreToLoad] = useState(false);
   const [locationInfo, setLocationInfo] = useState<{
     ward?: string;
     assembly_constituency?: string;
@@ -57,6 +68,9 @@ export const LeadersContent = () => {
 
   const fetchLocalLeaders = async () => {
     try {
+      setLoading(true);
+      setLoadingMessage("Finding your area representatives...");
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -78,6 +92,7 @@ export const LeadersContent = () => {
       }
 
       const pincode = profile?.pincode || "560029";
+      setLoadingMessage("Fetching leader data from AI...");
 
       const { data, error } = await supabase.functions.invoke("fetch-leaders", {
         body: { pincode }
@@ -91,6 +106,9 @@ export const LeadersContent = () => {
       if (data?.pincode_info) {
         setLocationInfo(data.pincode_info);
       }
+      if (data?.has_more_to_load) {
+        setHasMoreToLoad(true);
+      }
     } catch (error) {
       console.error("Error fetching leaders:", error);
     } finally {
@@ -98,17 +116,22 @@ export const LeadersContent = () => {
     }
   };
 
+  const loadMoreLeaders = async () => {
+    setHasMoreToLoad(false);
+    setLoadingMessage("Loading more leaders...");
+    await fetchLocalLeaders();
+  };
+
   const searchAllLeaders = async (query: string) => {
     if (!query.trim()) return;
     
     setSearching(true);
     try {
-      // Search across all leaders by name, designation, party, constituency, or state
       const { data, error } = await supabase
         .from("leaders")
         .select("id, name, designation, party, constituency, state, image_url, attendance, funds_utilized, questions_raised, hierarchy_level")
         .or(`name.ilike.%${query}%,designation.ilike.%${query}%,party.ilike.%${query}%,constituency.ilike.%${query}%,state.ilike.%${query}%`)
-        .order("hierarchy_level", { ascending: true })
+        .order("hierarchy_level", { ascending: false })
         .limit(20);
 
       if (error) throw error;
@@ -134,32 +157,67 @@ export const LeadersContent = () => {
     return Math.round((attendance + funds + questions) / 3);
   };
 
-  const getHierarchyLabel = (level: number | null) => {
-    const labels: Record<number, string> = {
-      1: "National Level",
-      2: "State Level", 
-      3: "Parliamentary",
-      4: "State Government",
-      5: "Governor"
-    };
-    return labels[level || 3] || "Representative";
+  const getHierarchyInfo = (level: number | null) => {
+    return HIERARCHY_LABELS[level || 3] || { en: "Representative", hi: "प्रतिनिधि", emoji: "👤" };
   };
 
   const displayLeaders = isSearchMode ? searchResults : localLeaders;
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full rounded-lg" />
-        <Skeleton className="h-32 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
+      <div className="space-y-6">
+        {/* Loading Header */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center animate-pulse">
+              <Users className="w-6 h-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-primary">{loadingMessage}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                AI is finding and generating data for your area's political representatives
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Skeleton Cards */}
+        <div className="space-y-4">
+          {[6, 5, 4, 3, 2, 1].map((level) => {
+            const info = HIERARCHY_LABELS[level];
+            return (
+              <div key={level} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{info.emoji}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{info.en}</span>
+                  <span className="text-xs text-muted-foreground/60">({info.hi})</span>
+                </div>
+                <Skeleton className="h-28 w-full rounded-xl" />
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header with Hierarchy Info */}
+      {!isSearchMode && (
+        <div className="bg-gradient-to-r from-primary/10 to-transparent rounded-xl p-4 border border-primary/20">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">🏛️</span>
+            <div>
+              <h3 className="font-semibold text-foreground">Your Political Hierarchy</h3>
+              <p className="text-xs text-muted-foreground">
+                Tap any leader to see their complete profile, projects & performance
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -204,8 +262,9 @@ export const LeadersContent = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {displayLeaders.map((leader, index) => {
+            const hierarchyInfo = getHierarchyInfo(leader.hierarchy_level);
             const formattedLeader = {
               id: parseInt(leader.id) || 0,
               name: leader.name,
@@ -221,46 +280,79 @@ export const LeadersContent = () => {
 
             return (
               <div key={leader.id} className="relative">
-                {/* Hierarchy Label */}
-                <div className="flex items-center gap-3 mb-3">
+                {/* Hierarchy Label with Hindi */}
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{hierarchyInfo.emoji}</span>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xs font-bold text-primary">{index + 1}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {getHierarchyLabel(leader.hierarchy_level)}
-                      </span>
-                      {isSearchMode && leader.state && (
-                        <span className="text-xs text-muted-foreground/70">
-                          {leader.state}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-xs font-semibold text-foreground">
+                      {hierarchyInfo.en}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({hierarchyInfo.hi})
+                    </span>
                   </div>
-                  <div className="flex-1 h-px bg-border" />
+                  {isSearchMode && leader.state && (
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {leader.state}
+                    </span>
+                  )}
                 </div>
 
                 {/* Connecting Line */}
                 {index > 0 && !isSearchMode && (
-                  <div className="absolute left-4 -top-6 w-px h-6 bg-gradient-to-b from-primary/30 to-transparent" />
+                  <div className="absolute left-[14px] -top-4 w-0.5 h-4 bg-gradient-to-b from-primary/40 to-primary/10" />
                 )}
 
                 <LeaderCard
                   leader={formattedLeader}
                   onClick={() => navigate(`/leader/${leader.id}`)}
                 />
+
+                {/* Arrow to next level */}
+                {index < displayLeaders.length - 1 && !isSearchMode && (
+                  <div className="flex justify-center py-2">
+                    <div className="w-0.5 h-4 bg-gradient-to-b from-primary/10 to-primary/40" />
+                  </div>
+                )}
               </div>
             );
           })}
+
+          {/* You (Citizen) at the bottom */}
+          {!isSearchMode && displayLeaders.length > 0 && (
+            <div className="flex items-center gap-2 pt-2">
+              <span className="text-lg">🏠</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-primary">YOU</span>
+                <span className="text-xs text-muted-foreground">(नागरिक)</span>
+              </div>
+              {locationInfo && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  {locationInfo.ward || locationInfo.assembly_constituency}, {locationInfo.district}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Location Info (only show when not searching) */}
+      {/* Load More Button */}
+      {hasMoreToLoad && !isSearchMode && (
+        <Button 
+          variant="outline" 
+          className="w-full" 
+          onClick={loadMoreLeaders}
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Load more leaders
+        </Button>
+      )}
+
+      {/* Location Info */}
       {!isSearchMode && locationInfo && localLeaders.length > 0 && (
-        <div className="bg-card rounded-xl p-6 border border-border text-center">
-          <p className="text-sm text-muted-foreground">
-            📍 Showing leaders for {locationInfo.ward || locationInfo.assembly_constituency}, {locationInfo.parliamentary_constituency || locationInfo.district}
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <p className="text-xs text-muted-foreground text-center">
+            📍 {locationInfo.parliamentary_constituency} Parliamentary • {locationInfo.assembly_constituency} Assembly • {locationInfo.state}
           </p>
         </div>
       )}
