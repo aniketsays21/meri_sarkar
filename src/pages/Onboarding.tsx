@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Vote, MapPin, Phone, User } from "lucide-react";
+import { Vote, MapPin, Phone, User, Loader2, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +19,8 @@ const Onboarding = () => {
   const [pincode, setPincode] = useState("");
   const [occupation, setOccupation] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [detectedLocation, setDetectedLocation] = useState("");
 
   const handlePhoneSubmit = () => {
     if (phone.length === 10) {
@@ -42,6 +44,71 @@ const Onboarding = () => {
     if (occupation) {
       setStep(5);
     }
+  };
+
+  const handleGetLocation = async () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setLocationLoading(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Use reverse geocoding to get pincode
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          );
+          
+          if (!response.ok) {
+            throw new Error("Failed to fetch location");
+          }
+          
+          const data = await response.json();
+          const postcode = data.address?.postcode;
+          const area = data.address?.suburb || data.address?.neighbourhood || data.address?.city_district || data.address?.city || "";
+          
+          if (postcode && postcode.length === 6) {
+            setPincode(postcode);
+            setDetectedLocation(area);
+            toast.success(`Location detected: ${area}`);
+          } else {
+            toast.error("Could not detect valid pincode. Please enter manually.");
+          }
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          toast.error("Failed to get location details. Please enter pincode manually.");
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (error) => {
+        setLocationLoading(false);
+        console.error("Geolocation error:", error);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Location permission denied. Please enter pincode manually.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location unavailable. Please enter pincode manually.");
+            break;
+          case error.TIMEOUT:
+            toast.error("Location request timed out. Please enter pincode manually.");
+            break;
+          default:
+            toast.error("Failed to get location. Please enter pincode manually.");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   const handlePincodeSubmit = async () => {
@@ -333,17 +400,54 @@ const Onboarding = () => {
             </div>
 
             <div className="space-y-4">
+              {/* Auto-detect location button */}
+              <Button
+                onClick={handleGetLocation}
+                disabled={locationLoading}
+                variant="outline"
+                className="w-full h-14 text-lg rounded-2xl border-2 border-primary/30 hover:bg-primary/5 transition-smooth"
+              >
+                {locationLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Detecting location...
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-5 h-5 mr-2" />
+                    Use My Current Location
+                  </>
+                )}
+              </Button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-sm text-muted-foreground">or</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               <div className="relative">
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Enter 6-digit Pincode"
                   value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
+                  onChange={(e) => {
+                    setPincode(e.target.value);
+                    setDetectedLocation("");
+                  }}
                   maxLength={6}
                   className="pl-12 h-14 text-lg rounded-2xl"
                 />
               </div>
+
+              {/* Show detected location */}
+              {detectedLocation && pincode && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-accent/10 rounded-xl text-sm">
+                  <MapPin className="w-4 h-4 text-accent" />
+                  <span className="text-foreground">Detected: <strong>{detectedLocation}</strong></span>
+                </div>
+              )}
 
               <Button
                 onClick={handlePincodeSubmit}

@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
   const [userPincode, setUserPincode] = useState("");
+  const [userLocation, setUserLocation] = useState("");
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -31,13 +32,29 @@ const Dashboard = () => {
         if (user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('name, pincode')
+            .select('name, pincode, constituency')
             .eq('user_id', user.id)
             .single();
           
           if (profile) {
             setUserName(profile.name);
-            setUserPincode(profile.pincode || "400053");
+            setUserPincode(profile.pincode || "");
+            
+            // Fetch location name from pincode_constituency table
+            if (profile.pincode) {
+              const { data: pincodeData } = await supabase
+                .from('pincode_constituency')
+                .select('assembly_constituency, district, state')
+                .eq('pincode', profile.pincode)
+                .single();
+              
+              if (pincodeData) {
+                setUserLocation(pincodeData.assembly_constituency || pincodeData.district || pincodeData.state || "");
+              } else {
+                // If pincode not in our DB, use constituency from profile or pincode
+                setUserLocation(profile.constituency || profile.pincode);
+              }
+            }
           }
         }
       } catch (error) {
@@ -89,7 +106,7 @@ const Dashboard = () => {
             </h1>
             <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-1">
               <MapPin className="w-4 h-4" />
-              <span>Mumbai North - {userPincode}</span>
+              <span>{userLocation || "Your Area"} - {userPincode}</span>
             </div>
           </div>
           <button className="w-10 h-10 rounded-full bg-muted flex items-center justify-center transition-smooth hover:bg-muted/80">
