@@ -169,7 +169,7 @@ const Onboarding = () => {
       <div className="gradient-hero p-6 pb-12 rounded-b-[2rem]">
         <div className="flex items-center justify-center gap-3 text-white mb-4">
           <Vote className="w-10 h-10" />
-          <h1 className="text-3xl font-display font-bold">Meri Sarkar</h1>
+          <h1 className="text-3xl font-display font-bold">Neta Watch</h1>
         </div>
         <p className="text-white/90 text-center text-sm">
           Democracy in your pocket

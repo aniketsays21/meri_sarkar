@@ -69,99 +69,50 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const prompt = `You are a political data analyst for India. Generate a realistic area development report for TODAY.
+    const prompt = `Generate a realistic area development report for an Indian locality.
+${locationContext}
 
-Location: ${locationContext}
-Today's Date: ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}
-
-Create a JSON report with this EXACT structure (no markdown, just JSON):
+Generate realistic data for infrastructure metrics. Return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
 {
-  "overall_score": 73,
-  "ward_rank": 64,
-  "total_wards": 81,
-  "rank_change": -2,
-  "roads_score": 72,
-  "roads_trend": "up",
+  "roads_score": <number 40-90>,
   "roads_details": {
-    "currentWork": "Road widening on Main Street",
-    "contractor": "ABC Constructions Ltd",
-    "budget": "₹2.5 Crores",
-    "pastExperience": "Completed 5 road projects in past 2 years",
-    "futureExpectations": "Expected completion by March 2025"
+    "currentWork": "<ongoing road project description>",
+    "contractor": "<realistic Indian contractor company name>",
+    "budget": "<budget in crores/lakhs format like ₹2.5 Crores>",
+    "pastExperience": "<brief past project experience>",
+    "futureExpectations": "<expected completion and improvements>"
   },
-  "water_score": 68,
-  "water_trend": "down",
+  "water_score": <number 40-90>,
   "water_details": {
-    "currentWork": "New pipeline installation in Ward 5",
-    "contractor": "Aqua Infrastructure Pvt Ltd",
-    "budget": "₹1.8 Crores",
-    "pastExperience": "Maintained water supply for 3 wards",
-    "futureExpectations": "24/7 water supply planned by June 2025"
+    "currentWork": "<ongoing water project>",
+    "contractor": "<contractor name>",
+    "budget": "<budget>",
+    "pastExperience": "<past experience>",
+    "futureExpectations": "<future expectations>"
   },
-  "safety_score": 55,
-  "safety_trend": "stable",
+  "safety_score": <number 40-90>,
   "safety_details": {
-    "currentWork": "CCTV installation in main areas",
-    "contractor": "SecureCity Solutions",
-    "budget": "₹80 Lakhs",
-    "pastExperience": "Installed 200+ cameras in nearby areas",
-    "futureExpectations": "Complete surveillance coverage by year-end"
+    "currentWork": "<ongoing safety/security project>",
+    "contractor": "<contractor name>",
+    "budget": "<budget>",
+    "pastExperience": "<past experience>",
+    "futureExpectations": "<future expectations>"
   },
-  "health_score": 75,
-  "health_trend": "stable",
+  "health_score": <number 40-90>,
   "health_details": {
-    "currentWork": "PHC expansion and equipment upgrade",
-    "contractor": "HealthFirst Infrastructure",
-    "budget": "₹3.2 Crores",
-    "pastExperience": "Built 2 PHCs in neighboring districts",
-    "futureExpectations": "New ICU ward operational by April 2025"
+    "currentWork": "<ongoing health infrastructure project>",
+    "contractor": "<contractor name>",
+    "budget": "<budget>",
+    "pastExperience": "<past experience>",
+    "futureExpectations": "<future expectations>"
   },
-  "daily_updates": [
-    {
-      "type": "water",
-      "text": "31 water complaints filed in your area today",
-      "severity": "warning"
-    },
-    {
-      "type": "roads",
-      "text": "Roads rating improved by 3 points this week",
-      "severity": "positive"
-    },
-    {
-      "type": "safety",
-      "text": "2 safety incidents reported nearby",
-      "severity": "alert"
-    },
-    {
-      "type": "health",
-      "text": "PHC expansion work started today",
-      "severity": "positive"
-    }
-  ],
-  "summary": "Your ward ranks #64 out of 81 wards. Water supply issues increased today while road conditions are improving.",
-  "key_issues": [
-    "Street lighting needs improvement",
-    "Water supply disruptions reported",
-    "Need more police patrolling"
-  ],
-  "recent_developments": [
-    "New PHC expansion started",
-    "Road widening project 60% complete",
-    "CCTV cameras installed in main areas"
-  ]
+  "overall_score": <average of all scores>,
+  "summary": "<2-3 sentence summary of area development status>",
+  "key_issues": ["<issue 1>", "<issue 2>", "<issue 3>"],
+  "recent_developments": ["<development 1>", "<development 2>"]
 }
 
-IMPORTANT GUIDELINES:
-- ward_rank: Random between 40-75 out of 81 wards
-- rank_change: Random between -3 to +3
-- Trends: Use "up", "down", or "stable" based on scores
-- daily_updates: Generate 3-4 TODAY-SPECIFIC bullet points with these types: water, roads, safety, health
-- Severity levels: "positive", "warning", "alert", "info"
-- Scores should be between 50-85
-- Make daily_updates realistic for TODAY - not generic statements
-- Make it realistic for ${locationData?.state || "India"} with local context
-
-Return ONLY the JSON object, no markdown formatting.`;
+Make it realistic for ${locationData?.state || "India"} with local context. Vary the scores - not all should be similar.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -228,23 +179,15 @@ Return ONLY the JSON object, no markdown formatting.`;
       district: locationData?.district || null,
       constituency: locationData?.assembly_constituency || null,
       ward: locationData?.ward || null,
-      ward_rank: reportData.ward_rank || null,
-      total_wards: reportData.total_wards || 81,
-      rank_change: reportData.rank_change || 0,
       roads_score: reportData.roads_score,
-      roads_trend: reportData.roads_trend || 'stable',
       roads_details: reportData.roads_details,
       water_score: reportData.water_score,
-      water_trend: reportData.water_trend || 'stable',
       water_details: reportData.water_details,
       safety_score: reportData.safety_score,
-      safety_trend: reportData.safety_trend || 'stable',
       safety_details: reportData.safety_details,
       health_score: reportData.health_score,
-      health_trend: reportData.health_trend || 'stable',
       health_details: reportData.health_details,
       overall_score: reportData.overall_score,
-      daily_updates: reportData.daily_updates || [],
       summary: reportData.summary,
       key_issues: reportData.key_issues,
       recent_developments: reportData.recent_developments,
