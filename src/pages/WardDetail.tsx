@@ -120,7 +120,7 @@ export default function WardDetail() {
 
   const handleShare = () => {
     if (!ward) return;
-    const text = `${ward.ward} is ranked #${ward.rank} out of ${totalWards} wards this week with a score of ${ward.overall_score}/100!`;
+    const text = `${ward.ward} is ranked #${ward.rank} out of ${totalWards} areas this week with a score of ${ward.overall_score}/100!`;
     if (navigator.share) {
       navigator.share({ title: `${ward.ward} Performance`, text });
     } else {
@@ -261,14 +261,14 @@ export default function WardDetail() {
 
         <Card className="bg-gradient-to-br from-accent/10 to-transparent">
           <CardHeader>
-            <CardTitle>Help Your Ward Climb</CardTitle>
+            <CardTitle>Help Your Area Climb</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="text-lg">✅</span>
               <div>
                 <p className="font-medium">Answer Today's Polls</p>
-                <p className="text-sm text-muted-foreground">Your daily responses improve ward data accuracy</p>
+                <p className="text-sm text-muted-foreground">Your daily responses improve area data accuracy</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
