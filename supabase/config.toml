@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.fetch-leaders]
 verify_jwt = true
+
+[functions.fetch-local-news]
+verify_jwt = true
+
+[functions.generate-area-report]
+verify_jwt = true
