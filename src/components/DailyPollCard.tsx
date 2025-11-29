@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ThumbsUp, ThumbsDown, TrendingUp } from "lucide-react";
@@ -24,6 +25,7 @@ export const DailyPollCard = () => {
   const [userWard, setUserWard] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPolls();
@@ -62,7 +64,8 @@ export const DailyPollCard = () => {
       .select("*")
       .eq("is_active", true)
       .eq("poll_date", new Date().toISOString().split('T')[0])
-      .order("category");
+      .order("category")
+      .limit(2);
 
     if (error) {
       console.error("Error fetching polls:", error);
@@ -134,8 +137,13 @@ export const DailyPollCard = () => {
       setResponses({ ...responses, [pollId]: response });
       toast({
         title: "Response recorded!",
-        description: "Thank you for helping improve your ward's score.",
+        description: "Thank you for helping improve your area's score.",
       });
+      
+      // Navigate to board after 1 second
+      setTimeout(() => {
+        navigate("/board");
+      }, 1000);
     }
 
     setLoading(false);
@@ -161,10 +169,10 @@ export const DailyPollCard = () => {
           Today's Quick Polls
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Help your ward climb the rankings! 🏆
+          Help your area climb the rankings! 🏆
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="max-h-[300px] overflow-y-auto space-y-4">
         {polls.map((poll) => (
           <div key={poll.id} className="space-y-2">
             <div className="flex items-start gap-2">

@@ -124,9 +124,9 @@ export default function MohallaPerformanceBoard() {
   };
 
   const handleShare = () => {
-    const text = `Check out this week's Mohalla Performance Board! ${userWard ? `My ward ranked #${userWard.rank}` : 'See how your ward is performing'}`;
+    const text = `Check out this week's Area Performance Board! ${userWard ? `My area ranked #${userWard.rank}` : 'See how your area is performing'}`;
     if (navigator.share) {
-      navigator.share({ title: "Mohalla Performance Board", text });
+      navigator.share({ title: "Area Performance Board", text });
     } else {
       navigator.clipboard.writeText(text);
       toast({ title: "Copied to clipboard!" });
@@ -158,7 +158,7 @@ export default function MohallaPerformanceBoard() {
             <div className="text-center flex-1">
               <h1 className="text-lg font-bold flex items-center justify-center gap-2">
                 <Trophy className="h-5 w-5 text-primary" />
-                Mohalla Performance Board
+                Area Performance Board
               </h1>
               <p className="text-xs text-muted-foreground">Week {getWeekNumber(new Date())}, {new Date().getFullYear()}</p>
             </div>
@@ -173,7 +173,7 @@ export default function MohallaPerformanceBoard() {
         {userWard && (
           <Card className="border-primary bg-gradient-to-br from-primary/10 to-transparent">
             <CardHeader>
-              <CardTitle className="text-base">Your Ward</CardTitle>
+              <CardTitle className="text-base">Your Area</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
@@ -189,7 +189,7 @@ export default function MohallaPerformanceBoard() {
                       <span className="text-sm">{Math.abs(userWard.rank_change)}</span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">of {scores.length} wards</p>
+                  <p className="text-sm text-muted-foreground">of {scores.length} areas</p>
                   <p className="text-lg font-semibold text-primary">{userWard.overall_score}/100</p>
                 </div>
               </div>
