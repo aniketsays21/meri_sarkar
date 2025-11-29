@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_upvotes: {
+        Row: {
+          alert_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          alert_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_upvotes_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "area_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      area_alerts: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string
+          expires_at: string | null
+          id: string
+          location_name: string | null
+          pincode: string
+          status: string | null
+          title: string
+          upvotes: number | null
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description: string
+          expires_at?: string | null
+          id?: string
+          location_name?: string | null
+          pincode: string
+          status?: string | null
+          title: string
+          upvotes?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string
+          expires_at?: string | null
+          id?: string
+          location_name?: string | null
+          pincode?: string
+          status?: string | null
+          title?: string
+          upvotes?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       area_reports: {
         Row: {
           constituency: string | null

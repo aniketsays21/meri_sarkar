@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User, Calculator, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
+import { ChevronRight, User, Calculator, ArrowRight, RefreshCw, AlertCircle, AlertTriangle } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -8,6 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Skeleton } from "./ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AreaReportCard } from "./AreaReportCard";
+import { AreaAlertsList } from "./AreaAlertsList";
+import { CreateAlertDialog } from "./CreateAlertDialog";
 
 interface AreaDetails {
   currentWork: string;
@@ -29,18 +32,29 @@ interface AreaReport {
   pincode: string;
   roads_score: number;
   roads_details: AreaDetails;
+  roads_trend?: string;
   water_score: number;
   water_details: AreaDetails;
+  water_trend?: string;
   safety_score: number;
   safety_details: AreaDetails;
+  safety_trend?: string;
   health_score: number;
   health_details: AreaDetails;
+  health_trend?: string;
   overall_score: number;
   summary: string;
   key_issues: string[];
   recent_developments: string[];
   generated_at: string;
   expires_at: string;
+  ward?: string;
+  ward_rank?: number;
+  total_wards?: number;
+  rank_change?: number;
+  constituency?: string;
+  district?: string;
+  state?: string;
 }
 
 export const HomeContent = () => {
@@ -50,11 +64,35 @@ export const HomeContent = () => {
   const [areaReport, setAreaReport] = useState<AreaReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [userPincode, setUserPincode] = useState<string>("");
+  const [locationName, setLocationName] = useState<string>("");
+  const [createAlertOpen, setCreateAlertOpen] = useState(false);
 
   useEffect(() => {
+    fetchUserInfo();
     fetchMLA();
     fetchAreaReport();
   }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("pincode, constituency")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profile) {
+        setUserPincode(profile.pincode || "");
+        setLocationName(profile.constituency || "");
+      }
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
 
   const fetchMLA = async () => {
     try {
@@ -228,20 +266,17 @@ export const HomeContent = () => {
       </div>
 
       {/* My Area Report */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">My Area Report</h2>
-          {areaReport && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={fetchAreaReport}
-              disabled={loadingReport}
-              className="text-muted-foreground"
-            >
-              <RefreshCw className={`w-4 h-4 ${loadingReport ? 'animate-spin' : ''}`} />
-            </Button>
-          )}
+          <Button
+            onClick={() => setCreateAlertOpen(true)}
+            size="sm"
+            className="gap-2 bg-orange-600 hover:bg-orange-700"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Alert My Area
+          </Button>
         </div>
 
         {loadingReport ? (
@@ -257,84 +292,41 @@ export const HomeContent = () => {
                 </div>
               </Card>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="p-4">
-                  <Skeleton className="h-4 w-16 mb-3" />
-                  <Skeleton className="h-8 w-12 mb-2" />
-                  <Skeleton className="h-2 w-full" />
-                </Card>
-              ))}
-            </div>
+            <Skeleton className="h-64 w-full rounded-lg" />
           </div>
         ) : areaReport ? (
-          <>
-            {/* Overall Score Card */}
-            <Card className="p-4 mb-4 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Overall Score</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-3xl font-bold ${getScoreTextColor(areaReport.overall_score || 0)}`}>
-                      {areaReport.overall_score || 0}
-                    </span>
-                    <span className="text-sm text-muted-foreground">/100</span>
-                  </div>
-                </div>
-                <div className="w-16 h-16 relative">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="hsl(var(--muted))"
-                      strokeWidth="3"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="3"
-                      strokeDasharray={`${areaReport.overall_score || 0}, 100`}
-                    />
-                  </svg>
-                </div>
-              </div>
-              {areaReport.summary && (
-                <p className="text-sm text-muted-foreground mt-3">{areaReport.summary}</p>
-              )}
-            </Card>
+          <AreaReportCard
+            overallScore={areaReport.overall_score || 0}
+            wardRank={areaReport.ward_rank || 0}
+            totalWards={areaReport.total_wards || 81}
+            rankChange={areaReport.rank_change || 0}
+            metrics={areaMetrics.map((m) => ({
+              name: m.name,
+              score: m.score,
+              trend: areaReport[`${m.name.toLowerCase()}_trend` as keyof AreaReport] as "up" | "down" | "stable" || "stable",
+              details: m.details,
+            }))}
+            ward={areaReport.ward || ""}
+            constituency={areaReport.constituency || ""}
+          />
+        ) : (
+          <Card className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground mb-3">Unable to load area report</p>
+            <Button variant="outline" size="sm" onClick={fetchAreaReport}>
+              Try Again
+            </Button>
+          </Card>
+        )}
 
-            {/* Individual Metrics */}
-            <div className="grid grid-cols-2 gap-3">
-              {areaMetrics.map((metric) => (
-                <Card 
-                  key={metric.name} 
-                  className="p-4 hover:shadow-lg transition-all cursor-pointer active:scale-95"
-                  onClick={() => setSelectedMetric(metric)}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium">{metric.name}</p>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <span className={`text-2xl font-bold ${getScoreTextColor(metric.score)}`}>
-                      {metric.score}
-                    </span>
-                    <span className="text-xs text-muted-foreground">/100</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${metric.color} transition-all duration-500`} 
-                      style={{ width: `${metric.score}%` }}
-                    />
-                  </div>
-                </Card>
-              ))}
-            </div>
+        {/* Area Alerts Section */}
+        {userPincode && <AreaAlertsList pincode={userPincode} />}
 
-            {/* Key Issues */}
+        {/* Key Issues & Recent Developments */}
+        {areaReport && (
+          <div className="grid gap-3">
             {areaReport.key_issues && areaReport.key_issues.length > 0 && (
-              <Card className="p-4 mt-4">
+              <Card className="p-4">
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-orange-500" />
                   Key Issues
@@ -349,17 +341,33 @@ export const HomeContent = () => {
                 </ul>
               </Card>
             )}
-          </>
-        ) : (
-          <Card className="p-6 text-center">
-            <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground mb-3">Unable to load area report</p>
-            <Button variant="outline" size="sm" onClick={fetchAreaReport}>
-              Try Again
-            </Button>
-          </Card>
+            
+            {areaReport.recent_developments && areaReport.recent_developments.length > 0 && (
+              <Card className="p-4">
+                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  ✅ Recent Developments
+                </h3>
+                <ul className="space-y-2">
+                  {areaReport.recent_developments.map((dev, index) => (
+                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                      <span className="text-green-500 mt-1">•</span>
+                      {dev}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+          </div>
         )}
       </div>
+
+      {/* Create Alert Dialog */}
+      <CreateAlertDialog
+        open={createAlertOpen}
+        onOpenChange={setCreateAlertOpen}
+        pincode={userPincode}
+        locationName={locationName}
+      />
 
       {/* Area Metrics Detail Dialog */}
       <Dialog open={!!selectedMetric} onOpenChange={() => setSelectedMetric(null)}>
