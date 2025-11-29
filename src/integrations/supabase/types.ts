@@ -18,74 +18,98 @@ export type Database = {
         Row: {
           constituency: string | null
           created_at: string
+          daily_updates: Json | null
           district: string | null
           expires_at: string | null
           generated_at: string | null
           health_details: Json | null
           health_score: number | null
+          health_trend: string | null
           id: string
           key_issues: string[] | null
           overall_score: number | null
           pincode: string
+          rank_change: number | null
           recent_developments: string[] | null
           roads_details: Json | null
           roads_score: number | null
+          roads_trend: string | null
           safety_details: Json | null
           safety_score: number | null
+          safety_trend: string | null
           state: string | null
           summary: string | null
+          total_wards: number | null
           updated_at: string
           ward: string | null
+          ward_rank: number | null
           water_details: Json | null
           water_score: number | null
+          water_trend: string | null
         }
         Insert: {
           constituency?: string | null
           created_at?: string
+          daily_updates?: Json | null
           district?: string | null
           expires_at?: string | null
           generated_at?: string | null
           health_details?: Json | null
           health_score?: number | null
+          health_trend?: string | null
           id?: string
           key_issues?: string[] | null
           overall_score?: number | null
           pincode: string
+          rank_change?: number | null
           recent_developments?: string[] | null
           roads_details?: Json | null
           roads_score?: number | null
+          roads_trend?: string | null
           safety_details?: Json | null
           safety_score?: number | null
+          safety_trend?: string | null
           state?: string | null
           summary?: string | null
+          total_wards?: number | null
           updated_at?: string
           ward?: string | null
+          ward_rank?: number | null
           water_details?: Json | null
           water_score?: number | null
+          water_trend?: string | null
         }
         Update: {
           constituency?: string | null
           created_at?: string
+          daily_updates?: Json | null
           district?: string | null
           expires_at?: string | null
           generated_at?: string | null
           health_details?: Json | null
           health_score?: number | null
+          health_trend?: string | null
           id?: string
           key_issues?: string[] | null
           overall_score?: number | null
           pincode?: string
+          rank_change?: number | null
           recent_developments?: string[] | null
           roads_details?: Json | null
           roads_score?: number | null
+          roads_trend?: string | null
           safety_details?: Json | null
           safety_score?: number | null
+          safety_trend?: string | null
           state?: string | null
           summary?: string | null
+          total_wards?: number | null
           updated_at?: string
           ward?: string | null
+          ward_rank?: number | null
           water_details?: Json | null
           water_score?: number | null
+          water_trend?: string | null
         }
         Relationships: []
       }
@@ -118,6 +142,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      leader_activities: {
+        Row: {
+          activity_date: string | null
+          activity_description: string
+          activity_type: string
+          created_at: string | null
+          id: string
+          is_positive: boolean | null
+          leader_id: string | null
+          source_url: string | null
+        }
+        Insert: {
+          activity_date?: string | null
+          activity_description: string
+          activity_type: string
+          created_at?: string | null
+          id?: string
+          is_positive?: boolean | null
+          leader_id?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          activity_date?: string | null
+          activity_description?: string
+          activity_type?: string
+          created_at?: string | null
+          id?: string
+          is_positive?: boolean | null
+          leader_id?: string | null
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leader_activities_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leaders: {
         Row: {
