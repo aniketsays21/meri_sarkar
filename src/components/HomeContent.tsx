@@ -1,62 +1,73 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User, Calculator, ArrowRight, RefreshCw, AlertCircle } from "lucide-react";
+import { RefreshCw, AlertCircle, Calculator, ArrowRight, Droplets, Shield } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Skeleton } from "./ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { TrendIndicator } from "./TrendIndicator";
+import { RankBadge } from "./RankBadge";
+import { DailyUpdate } from "./DailyUpdate";
+import { LeaderActivity } from "./LeaderActivity";
 
-interface AreaDetails {
-  currentWork: string;
-  contractor: string;
-  budget: string;
-  pastExperience: string;
-  futureExpectations: string;
-}
-
-interface AreaMetric {
-  name: string;
-  score: number;
-  color: string;
-  details: AreaDetails;
+interface DailyUpdateItem {
+  type: string;
+  text: string;
+  severity: 'positive' | 'warning' | 'alert' | 'info';
 }
 
 interface AreaReport {
   id: string;
   pincode: string;
+  ward_rank?: number;
+  total_wards?: number;
+  rank_change?: number;
   roads_score: number;
-  roads_details: AreaDetails;
+  roads_trend?: 'up' | 'down' | 'stable';
   water_score: number;
-  water_details: AreaDetails;
+  water_trend?: 'up' | 'down' | 'stable';
   safety_score: number;
-  safety_details: AreaDetails;
+  safety_trend?: 'up' | 'down' | 'stable';
   health_score: number;
-  health_details: AreaDetails;
+  health_trend?: 'up' | 'down' | 'stable';
   overall_score: number;
+  daily_updates?: DailyUpdateItem[];
   summary: string;
   key_issues: string[];
   recent_developments: string[];
-  generated_at: string;
-  expires_at: string;
+}
+
+interface LeaderActivityData {
+  activity_type: string;
+  activity_description: string;
+  activity_date: string;
+  is_positive: boolean;
+}
+
+interface Leader {
+  id: string;
+  name: string;
+  designation: string;
+  party?: string;
+  image_url?: string;
 }
 
 export const HomeContent = () => {
   const navigate = useNavigate();
-  const [selectedMetric, setSelectedMetric] = useState<AreaMetric | null>(null);
-  const [mlaLeader, setMlaLeader] = useState<any[]>([]);
+  const [leaders, setLeaders] = useState<Leader[]>([]);
+  const [leaderActivities, setLeaderActivities] = useState<Record<string, LeaderActivityData[]>>({});
   const [areaReport, setAreaReport] = useState<AreaReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
 
   useEffect(() => {
-    fetchMLA();
+    fetchLeaders();
     fetchAreaReport();
   }, []);
 
-  const fetchMLA = async () => {
+  const fetchLeaders = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -74,10 +85,39 @@ export const HomeContent = () => {
       });
 
       if (data?.leaders) {
-        setMlaLeader(data.leaders);
+        setLeaders(data.leaders);
+        fetchActivities(pincode);
       }
     } catch (error) {
       console.error("Error fetching leaders:", error);
+    }
+  };
+
+  const fetchActivities = async (pincode: string) => {
+    try {
+      setLoadingActivities(true);
+      const { data, error } = await supabase.functions.invoke("populate-leader-activities", {
+        body: { pincode }
+      });
+
+      if (error) {
+        console.error("Error fetching activities:", error);
+      } else if (data?.activities) {
+        // Group activities by leader_id
+        const groupedActivities: Record<string, LeaderActivityData[]> = {};
+        data.activities.forEach((activity: any) => {
+          const leaderId = activity.leaders?.id || activity.leader_id;
+          if (!groupedActivities[leaderId]) {
+            groupedActivities[leaderId] = [];
+          }
+          groupedActivities[leaderId].push(activity);
+        });
+        setLeaderActivities(groupedActivities);
+      }
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+    } finally {
+      setLoadingActivities(false);
     }
   };
 
@@ -123,114 +163,12 @@ export const HomeContent = () => {
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 75) return "bg-green-500";
-    if (score >= 50) return "bg-orange-500";
-    return "bg-red-500";
-  };
-
-  const getScoreTextColor = (score: number) => {
-    if (score >= 75) return "text-green-600";
-    if (score >= 50) return "text-orange-600";
-    return "text-red-600";
-  };
-
-  const getMetricColor = (name: string) => {
-    switch (name) {
-      case "Roads": return "bg-blue-500";
-      case "Water": return "bg-cyan-500";
-      case "Safety": return "bg-orange-500";
-      case "Health": return "bg-green-500";
-      default: return "bg-primary";
-    }
-  };
-
-  const getAreaMetrics = (): AreaMetric[] => {
-    if (!areaReport) return [];
-    return [
-      { 
-        name: "Roads", 
-        score: areaReport.roads_score || 0, 
-        color: "bg-blue-500",
-        details: areaReport.roads_details || {} as AreaDetails
-      },
-      { 
-        name: "Water", 
-        score: areaReport.water_score || 0, 
-        color: "bg-cyan-500",
-        details: areaReport.water_details || {} as AreaDetails
-      },
-      { 
-        name: "Safety", 
-        score: areaReport.safety_score || 0, 
-        color: "bg-orange-500",
-        details: areaReport.safety_details || {} as AreaDetails
-      },
-      { 
-        name: "Health", 
-        score: areaReport.health_score || 0, 
-        color: "bg-green-500",
-        details: areaReport.health_details || {} as AreaDetails
-      },
-    ];
-  };
-
-  const areaMetrics = getAreaMetrics();
-
   return (
     <div className="space-y-6">
-      {/* My Leaders */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">My Leaders</h2>
-        {mlaLeader && mlaLeader.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-            {mlaLeader.map((leader: any) => (
-              <Card
-                key={leader.id}
-                className="flex-shrink-0 w-[280px] p-5 hover:shadow-lg transition-all cursor-pointer snap-center"
-                onClick={() => navigate(`/leader/${leader.id}`)}
-              >
-                <div className="flex items-center gap-4 mb-3">
-                  <img
-                    src={leader.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.name}`}
-                    alt={leader.name}
-                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base mb-1 truncate">{leader.name}</h3>
-                    <Badge variant="outline" className="text-xs mb-1">{leader.designation}</Badge>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  {leader.party && (
-                    <div className="px-2 py-0.5 rounded-full bg-primary/10">
-                      <span className="text-xs font-medium text-primary">{leader.party}</span>
-                    </div>
-                  )}
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
-                <User className="w-8 h-8 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base mb-1">Loading...</h3>
-                <p className="text-sm text-muted-foreground">Fetching your leaders</p>
-              </div>
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {/* My Area Report */}
+      {/* Your Ward Today */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">My Area Report</h2>
+          <h2 className="text-lg font-semibold">📍 Your Ward Today</h2>
           {areaReport && (
             <Button 
               variant="ghost" 
@@ -251,109 +189,89 @@ export const HomeContent = () => {
                 <div className="flex items-center gap-3">
                   <RefreshCw className="w-5 h-5 text-primary animate-spin" />
                   <div>
-                    <p className="text-sm font-medium">Generating your area report...</p>
+                    <p className="text-sm font-medium">Generating your ward report...</p>
                     <p className="text-xs text-muted-foreground">This may take a few seconds</p>
                   </div>
                 </div>
               </Card>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="p-4">
-                  <Skeleton className="h-4 w-16 mb-3" />
-                  <Skeleton className="h-8 w-12 mb-2" />
-                  <Skeleton className="h-2 w-full" />
-                </Card>
-              ))}
-            </div>
+            <Card className="p-6">
+              <Skeleton className="h-8 w-48 mb-4" />
+              <Skeleton className="h-16 w-full mb-4" />
+              <Skeleton className="h-24 w-full" />
+            </Card>
           </div>
         ) : areaReport ? (
           <>
-            {/* Overall Score Card */}
-            <Card className="p-4 mb-4 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Overall Score</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-3xl font-bold ${getScoreTextColor(areaReport.overall_score || 0)}`}>
-                      {areaReport.overall_score || 0}
-                    </span>
-                    <span className="text-sm text-muted-foreground">/100</span>
+            <Card className="p-6">
+              {areaReport.ward_rank && areaReport.total_wards && (
+                <RankBadge 
+                  rank={areaReport.ward_rank} 
+                  total={areaReport.total_wards}
+                  change={areaReport.rank_change || 0}
+                />
+              )}
+
+              {/* Trend Indicators */}
+              <div className="grid grid-cols-3 gap-4 mt-6">
+                <div className="flex flex-col items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Droplets className="w-5 h-5 text-blue-500" />
+                    <TrendIndicator trend={areaReport.water_trend || 'stable'} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Water</p>
+                    <p className="text-lg font-bold">{areaReport.water_score}</p>
                   </div>
                 </div>
-                <div className="w-16 h-16 relative">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="hsl(var(--muted))"
-                      strokeWidth="3"
-                    />
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="3"
-                      strokeDasharray={`${areaReport.overall_score || 0}, 100`}
-                    />
-                  </svg>
+
+                <div className="flex flex-col items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M3 11l19-9-9 19-2-8-8-2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <TrendIndicator trend={areaReport.roads_trend || 'stable'} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Roads</p>
+                    <p className="text-lg font-bold">{areaReport.roads_score}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-orange-500" />
+                    <TrendIndicator trend={areaReport.safety_trend || 'stable'} />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground">Safety</p>
+                    <p className="text-lg font-bold">{areaReport.safety_score}</p>
+                  </div>
                 </div>
               </div>
-              {areaReport.summary && (
-                <p className="text-sm text-muted-foreground mt-3">{areaReport.summary}</p>
+
+              {/* Daily Updates */}
+              {areaReport.daily_updates && areaReport.daily_updates.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-semibold text-sm mb-3">TODAY'S UPDATES:</h3>
+                  <div className="space-y-1">
+                    {areaReport.daily_updates.map((update, idx) => (
+                      <DailyUpdate 
+                        key={idx}
+                        type={update.type}
+                        text={update.text}
+                        severity={update.severity}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
             </Card>
-
-            {/* Individual Metrics */}
-            <div className="grid grid-cols-2 gap-3">
-              {areaMetrics.map((metric) => (
-                <Card 
-                  key={metric.name} 
-                  className="p-4 hover:shadow-lg transition-all cursor-pointer active:scale-95"
-                  onClick={() => setSelectedMetric(metric)}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-medium">{metric.name}</p>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <span className={`text-2xl font-bold ${getScoreTextColor(metric.score)}`}>
-                      {metric.score}
-                    </span>
-                    <span className="text-xs text-muted-foreground">/100</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${metric.color} transition-all duration-500`} 
-                      style={{ width: `${metric.score}%` }}
-                    />
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {/* Key Issues */}
-            {areaReport.key_issues && areaReport.key_issues.length > 0 && (
-              <Card className="p-4 mt-4">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-orange-500" />
-                  Key Issues
-                </h3>
-                <ul className="space-y-2">
-                  {areaReport.key_issues.map((issue, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-orange-500 mt-1">•</span>
-                      {issue}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
           </>
         ) : (
           <Card className="p-6 text-center">
             <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm text-muted-foreground mb-3">Unable to load area report</p>
+            <p className="text-sm text-muted-foreground mb-3">Unable to load ward report</p>
             <Button variant="outline" size="sm" onClick={fetchAreaReport}>
               Try Again
             </Button>
@@ -361,72 +279,40 @@ export const HomeContent = () => {
         )}
       </div>
 
-      {/* Area Metrics Detail Dialog */}
-      <Dialog open={!!selectedMetric} onOpenChange={() => setSelectedMetric(null)}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{selectedMetric?.name} Status</DialogTitle>
-          </DialogHeader>
-          
-          {selectedMetric && (
-            <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-3">
-                <div className={`text-3xl font-bold ${getScoreTextColor(selectedMetric.score)}`}>
-                  {selectedMetric.score}/100
-                </div>
-                <div className="flex-1">
-                  <div className="h-3 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${selectedMetric.color}`} 
-                      style={{ width: `${selectedMetric.score}%` }}
-                    />
+      {/* Neta Activity Today */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4">🏛️ Neta Activity Today</h2>
+        {loadingActivities ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                {selectedMetric.details?.currentWork && (
-                  <div className="p-4 bg-primary/5 rounded-xl">
-                    <h4 className="font-semibold text-sm mb-2 text-primary">Current Work</h4>
-                    <p className="text-sm text-foreground">{selectedMetric.details.currentWork}</p>
-                  </div>
-                )}
-
-                {(selectedMetric.details?.contractor || selectedMetric.details?.budget) && (
-                  <div className="grid grid-cols-2 gap-3">
-                    {selectedMetric.details?.contractor && (
-                      <div className="p-3 bg-card rounded-lg border">
-                        <p className="text-xs text-muted-foreground mb-1">Contractor</p>
-                        <p className="text-sm font-medium">{selectedMetric.details.contractor}</p>
-                      </div>
-                    )}
-                    {selectedMetric.details?.budget && (
-                      <div className="p-3 bg-card rounded-lg border">
-                        <p className="text-xs text-muted-foreground mb-1">Budget</p>
-                        <p className="text-sm font-medium">{selectedMetric.details.budget}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedMetric.details?.pastExperience && (
-                  <div className="p-4 bg-accent/5 rounded-xl">
-                    <h4 className="font-semibold text-sm mb-2">Past Experience</h4>
-                    <p className="text-sm text-muted-foreground">{selectedMetric.details.pastExperience}</p>
-                  </div>
-                )}
-
-                {selectedMetric.details?.futureExpectations && (
-                  <div className="p-4 bg-secondary/5 rounded-xl">
-                    <h4 className="font-semibold text-sm mb-2">Future Expectations</h4>
-                    <p className="text-sm text-muted-foreground">{selectedMetric.details.futureExpectations}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+              </Card>
+            ))}
+          </div>
+        ) : leaders.length > 0 ? (
+          <div className="space-y-3">
+            {leaders.map((leader) => (
+              <LeaderActivity
+                key={leader.id}
+                leader={leader}
+                activities={leaderActivities[leader.id] || []}
+                onClick={() => navigate(`/leader/${leader.id}`)}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="p-6 text-center">
+            <p className="text-sm text-muted-foreground">No leaders found</p>
+          </Card>
+        )}
+      </div>
 
       {/* Policies for You */}
       <div>
@@ -454,40 +340,6 @@ export const HomeContent = () => {
             </div>
           </div>
         </Card>
-
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <Card 
-            className="p-4 hover:shadow-md transition-all cursor-pointer"
-            onClick={() => navigate("/impact-calculator")}
-          >
-            <div className="mb-3">
-              <h4 className="font-semibold text-sm mb-1">PM Kisan</h4>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                  ✓ Eligible
-                </span>
-              </div>
-              <p className="text-lg font-bold text-primary">₹6,000</p>
-              <p className="text-xs text-muted-foreground">per year</p>
-            </div>
-          </Card>
-
-          <Card 
-            className="p-4 hover:shadow-md transition-all cursor-pointer"
-            onClick={() => navigate("/impact-calculator")}
-          >
-            <div className="mb-3">
-              <h4 className="font-semibold text-sm mb-1">Soil Health</h4>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                  ✓ Eligible
-                </span>
-              </div>
-              <p className="text-sm font-semibold text-primary">Free</p>
-              <p className="text-xs text-muted-foreground">scheme</p>
-            </div>
-          </Card>
-        </div>
       </div>
     </div>
   );
