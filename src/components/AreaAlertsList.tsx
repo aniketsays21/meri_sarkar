@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Droplet, Trash2, AlertCircle, User, Car, Share2 } from "lucide-react";
+import { AlertTriangle, Droplet, Trash2, AlertCircle, User, Car, ThumbsUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { AlertDetailDialog } from "./AlertDetailDialog";
@@ -17,6 +17,11 @@ interface Alert {
   upvotes: number;
   created_at: string;
   user_id: string;
+  image_url: string | null;
+}
+
+interface AlertWithUpvote extends Alert {
+  hasUpvoted: boolean;
 }
 
 interface AreaAlertsListProps {
@@ -76,12 +81,15 @@ const getCategoryLabel = (category: string) => {
 };
 
 export const AreaAlertsList = ({ pincode }: AreaAlertsListProps) => {
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alerts, setAlerts] = useState<AlertWithUpvote[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [upvoting, setUpvoting] = useState<string | null>(null);
 
   const fetchAlerts = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from("area_alerts")
         .select("*")
@@ -91,7 +99,26 @@ export const AreaAlertsList = ({ pincode }: AreaAlertsListProps) => {
         .limit(5);
 
       if (error) throw error;
-      setAlerts(data || []);
+
+      if (!user) {
+        setAlerts((data || []).map(alert => ({ ...alert, hasUpvoted: false })));
+        return;
+      }
+
+      // Check which alerts the user has upvoted
+      const alertIds = (data || []).map(a => a.id);
+      const { data: upvotes } = await supabase
+        .from("alert_upvotes")
+        .select("alert_id")
+        .eq("user_id", user.id)
+        .in("alert_id", alertIds);
+
+      const upvotedIds = new Set(upvotes?.map(v => v.alert_id) || []);
+      
+      setAlerts((data || []).map(alert => ({
+        ...alert,
+        hasUpvoted: upvotedIds.has(alert.id)
+      })));
     } catch (error) {
       console.error("Error fetching alerts:", error);
       toast({
@@ -101,6 +128,59 @@ export const AreaAlertsList = ({ pincode }: AreaAlertsListProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpvote = async (alert: AlertWithUpvote, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upvote",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUpvoting(alert.id);
+    try {
+      if (alert.hasUpvoted) {
+        // Remove upvote
+        await supabase
+          .from("alert_upvotes")
+          .delete()
+          .eq("alert_id", alert.id)
+          .eq("user_id", user.id);
+
+        await supabase
+          .from("area_alerts")
+          .update({ upvotes: alert.upvotes - 1 })
+          .eq("id", alert.id);
+      } else {
+        // Add upvote
+        await supabase.from("alert_upvotes").insert({
+          alert_id: alert.id,
+          user_id: user.id,
+        });
+
+        await supabase
+          .from("area_alerts")
+          .update({ upvotes: alert.upvotes + 1 })
+          .eq("id", alert.id);
+      }
+
+      fetchAlerts();
+    } catch (error) {
+      console.error("Error upvoting:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update vote",
+        variant: "destructive",
+      });
+    } finally {
+      setUpvoting(null);
     }
   };
 
@@ -183,31 +263,39 @@ export const AreaAlertsList = ({ pincode }: AreaAlertsListProps) => {
             return (
               <div
                 key={alert.id}
-                className="p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
-                onClick={() => setSelectedAlert(alert)}
+                className="p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors"
               >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <Badge variant="outline" className={colorClass}>
-                    <Icon className="w-3 h-3 mr-1" />
-                    {getCategoryLabel(alert.category).toUpperCase()}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
-                  </span>
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => setSelectedAlert(alert)}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <Badge variant="outline" className={colorClass}>
+                      <Icon className="w-3 h-3 mr-1" />
+                      {getCategoryLabel(alert.category).toUpperCase()}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-semibold mb-1">{alert.title}</h4>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                    {alert.description}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <span>👥 {alert.upvotes} {alert.upvotes === 1 ? "person" : "people"} affected</span>
+                  </div>
                 </div>
-                <h4 className="text-sm font-semibold mb-1">{alert.title}</h4>
-                <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                  {alert.description}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    👥 {alert.upvotes} {alert.upvotes === 1 ? "person" : "people"} affected
-                  </span>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                    <Share2 className="w-3 h-3" />
-                    Share
-                  </Button>
-                </div>
+                <Button
+                  variant={alert.hasUpvoted ? "default" : "outline"}
+                  size="sm"
+                  onClick={(e) => handleUpvote(alert, e)}
+                  disabled={upvoting === alert.id}
+                  className="w-full gap-2"
+                >
+                  <ThumbsUp className="w-3 h-3" />
+                  {alert.hasUpvoted ? "You're affected" : "I'm affected too"}
+                </Button>
               </div>
             );
           })}

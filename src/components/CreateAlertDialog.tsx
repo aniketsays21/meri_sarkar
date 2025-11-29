@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Droplet, Trash2, AlertTriangle, User, Car } from "lucide-react";
+import { Droplet, Trash2, AlertTriangle, User, Car, Upload, X } from "lucide-react";
 
 interface CreateAlertDialogProps {
   open: boolean;
@@ -39,6 +39,33 @@ export const CreateAlertDialog = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +92,26 @@ export const CreateAlertDialog = ({
         return;
       }
 
+      let imageUrl: string | null = null;
+
+      // Upload image if present
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('alert-images')
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('alert-images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
+
       const { error } = await supabase.from("area_alerts").insert({
         user_id: user.id,
         pincode,
@@ -73,6 +120,7 @@ export const CreateAlertDialog = ({
         description: description.trim(),
         location_name: locationName,
         upvotes: 1, // Creator automatically upvotes
+        image_url: imageUrl,
       });
 
       if (error) throw error;
@@ -86,6 +134,8 @@ export const CreateAlertDialog = ({
       setSelectedCategory("");
       setTitle("");
       setDescription("");
+      setImageFile(null);
+      setImagePreview(null);
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting alert:", error);
@@ -159,6 +209,44 @@ export const CreateAlertDialog = ({
               rows={3}
               maxLength={500}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image">Add a photo (optional)</Label>
+            {imagePreview ? (
+              <div className="relative">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-full h-48 object-cover rounded-lg border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={removeImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <label 
+                htmlFor="image" 
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent transition-colors"
+              >
+                <Upload className="h-8 w-8 mb-2 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Click to upload image</span>
+                <span className="text-xs text-muted-foreground mt-1">Max 5MB</span>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
           <div className="flex gap-2 pt-2">
