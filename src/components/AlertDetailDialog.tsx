@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Droplet, Trash2, AlertTriangle, User, Car, ThumbsUp, Instagram, Share2 } from "lucide-react";
+import { Droplet, Trash2, AlertTriangle, User, Car, Instagram, Share2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface Alert {
@@ -22,6 +22,7 @@ interface Alert {
   upvotes: number;
   created_at: string;
   user_id: string;
+  image_url: string | null;
 }
 
 interface AlertDetailDialogProps {
@@ -70,85 +71,14 @@ export const AlertDetailDialog = ({
   onOpenChange,
   onAlertUpdated,
 }: AlertDetailDialogProps) => {
-  const [hasUpvoted, setHasUpvoted] = useState(false);
-  const [upvoting, setUpvoting] = useState(false);
   const Icon = getCategoryIcon(alert.category);
 
-  useEffect(() => {
-    checkIfUpvoted();
-  }, [alert.id]);
-
-  const checkIfUpvoted = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("alert_upvotes")
-      .select("id")
-      .eq("alert_id", alert.id)
-      .eq("user_id", user.id)
-      .single();
-
-    setHasUpvoted(!!data);
-  };
-
-  const handleUpvote = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to upvote",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUpvoting(true);
-    try {
-      if (hasUpvoted) {
-        // Remove upvote
-        await supabase
-          .from("alert_upvotes")
-          .delete()
-          .eq("alert_id", alert.id)
-          .eq("user_id", user.id);
-
-        await supabase
-          .from("area_alerts")
-          .update({ upvotes: alert.upvotes - 1 })
-          .eq("id", alert.id);
-
-        setHasUpvoted(false);
-      } else {
-        // Add upvote
-        await supabase.from("alert_upvotes").insert({
-          alert_id: alert.id,
-          user_id: user.id,
-        });
-
-        await supabase
-          .from("area_alerts")
-          .update({ upvotes: alert.upvotes + 1 })
-          .eq("id", alert.id);
-
-        setHasUpvoted(true);
-      }
-
-      onAlertUpdated();
-    } catch (error) {
-      console.error("Error upvoting:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update vote",
-        variant: "destructive",
-      });
-    } finally {
-      setUpvoting(false);
-    }
-  };
-
   const shareToWhatsApp = () => {
-    const text = `🚨 ${getCategoryLabel(alert.category).toUpperCase()} in ${alert.location_name || "my area"}!\n\n${alert.title}\n\n${alert.description}\n\nReport issues in your area with our app!`;
+    let text = `🚨 ${getCategoryLabel(alert.category).toUpperCase()} in ${alert.location_name || "my area"}!\n\n${alert.title}\n\n${alert.description}`;
+    if (alert.image_url) {
+      text += `\n\n📷 See photo: ${alert.image_url}`;
+    }
+    text += `\n\nReport issues in your area with our app!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -178,20 +108,20 @@ export const AlertDetailDialog = ({
             <p className="text-sm text-muted-foreground">{alert.description}</p>
           </div>
 
+          {alert.image_url && (
+            <div className="rounded-lg overflow-hidden border">
+              <img 
+                src={alert.image_url} 
+                alt="Alert" 
+                className="w-full h-64 object-cover"
+              />
+            </div>
+          )}
+
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>📅 Reported {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}</span>
             <span>👥 {alert.upvotes} affected</span>
           </div>
-
-          <Button
-            onClick={handleUpvote}
-            disabled={upvoting}
-            variant={hasUpvoted ? "default" : "outline"}
-            className="w-full gap-2"
-          >
-            <ThumbsUp className="w-4 h-4" />
-            {hasUpvoted ? "You're affected" : "I'm affected too"}
-          </Button>
 
           <div className="pt-4 border-t">
             <h4 className="text-sm font-semibold mb-3">Spread the Word</h4>

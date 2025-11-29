@@ -50,6 +50,7 @@ export type Database = {
           description: string
           expires_at: string | null
           id: string
+          image_url: string | null
           location_name: string | null
           pincode: string
           status: string | null
@@ -63,6 +64,7 @@ export type Database = {
           description: string
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           location_name?: string | null
           pincode: string
           status?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           description?: string
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           location_name?: string | null
           pincode?: string
           status?: string | null
