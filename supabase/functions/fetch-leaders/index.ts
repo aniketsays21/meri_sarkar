@@ -77,7 +77,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const { pincode } = await req.json();
 
@@ -113,7 +112,7 @@ Deno.serve(async (req) => {
     const leaders: any[] = [];
     const missingPositions: PositionConfig[] = [];
 
-    // Step 2: Check each hierarchy level for existing leaders
+    // Step 2: Check each hierarchy level for existing leaders with IMPROVED MATCHING
     for (const position of HIERARCHY_CONFIG) {
       const constituencyName = position.getName(pincodeData);
       const state = position.getState(pincodeData);
@@ -123,25 +122,86 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Try to find existing leader
-      let query = supabase
-        .from('leaders')
-        .select('*')
-        .eq('hierarchy_level', position.level);
+      let existingLeader = null;
+      let leaderError = null;
 
-      // For PM, just check hierarchy level
+      // ============================================
+      // IMPROVED MATCHING LOGIC
+      // ============================================
       if (position.type === 'prime_minister') {
-        // PM is national, just check by hierarchy level
-      } else if (position.type === 'governor') {
-        query = query.eq('state', state).ilike('designation', '%Governor%');
-      } else if (position.type === 'chief_minister') {
-        query = query.eq('state', state).ilike('designation', '%Chief Minister%');
-      } else {
-        // For MP, MLA, Ward Councillor - match by constituency
-        query = query.or(`constituency.ilike.%${constituencyName}%,constituency.eq.${constituencyName}`);
+        // For PM: Search by hierarchy level OR designation pattern OR name pattern
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .or('hierarchy_level.eq.6,designation.ilike.%Prime Minister%,name.ilike.%Modi%')
+          .limit(1)
+          .maybeSingle();
+        existingLeader = data;
+        leaderError = error;
+      } 
+      else if (position.type === 'governor') {
+        // For Governor: Match by state AND (hierarchy level OR designation)
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .eq('state', state)
+          .or('hierarchy_level.eq.5,designation.ilike.%Governor%')
+          .limit(1)
+          .maybeSingle();
+        existingLeader = data;
+        leaderError = error;
+      } 
+      else if (position.type === 'chief_minister') {
+        // For CM: Match by state AND (hierarchy level OR designation)
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .eq('state', state)
+          .or('hierarchy_level.eq.4,designation.ilike.%Chief Minister%')
+          .limit(1)
+          .maybeSingle();
+        existingLeader = data;
+        leaderError = error;
+      } 
+      else if (position.type === 'mp') {
+        // For MP: Match by constituency name pattern AND (hierarchy level OR designation)
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .eq('state', state)
+          .or(`hierarchy_level.eq.3,designation.ilike.%Member of Parliament%,designation.ilike.%MP%`)
+          .or(`constituency.ilike.%${constituencyName}%,constituency.eq.${constituencyName}`)
+          .limit(1)
+          .maybeSingle();
+        existingLeader = data;
+        leaderError = error;
+      } 
+      else if (position.type === 'mla') {
+        // For MLA: Match by constituency and state
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .eq('state', state)
+          .or(`constituency.ilike.%${constituencyName}%,constituency.eq.${constituencyName}`)
+          .or('hierarchy_level.eq.2,designation.ilike.%MLA%,designation.ilike.%Member of Legislative Assembly%')
+          .limit(1)
+          .maybeSingle();
+        existingLeader = data;
+        leaderError = error;
+      } 
+      else if (position.type === 'ward_councillor') {
+        // For Ward Councillor: Match by ward/constituency name
+        const { data, error } = await supabase
+          .from('leaders')
+          .select('*')
+          .eq('state', state)
+          .or(`constituency.ilike.%${constituencyName}%,constituency.eq.${constituencyName}`)
+          .or('hierarchy_level.eq.1,designation.ilike.%Ward%,designation.ilike.%Councillor%,designation.ilike.%Corporator%')
+          .limit(1)
+          .maybeSingle();
+        existingLeader = data;
+        leaderError = error;
       }
-
-      const { data: existingLeader, error: leaderError } = await query.limit(1).maybeSingle();
 
       if (leaderError) {
         console.error(`Error checking ${position.type}:`, leaderError);
@@ -185,7 +245,7 @@ Deno.serve(async (req) => {
         if (populateResponse.ok) {
           const result = await populateResponse.json();
           if (result.leader) {
-            console.log(`Successfully populated ${position.type}:`, result.leader.name);
+            console.log(`Successfully populated ${position.type}:`, result.leader.name, result.cached ? '(cached)' : '(new)');
             leaders.push(result.leader);
           }
         } else {
@@ -233,7 +293,7 @@ Deno.serve(async (req) => {
         },
         has_more_to_load: remainingMissing > 0,
         message: remainingMissing > 0 
-          ? `Loading ${remainingMissing} more leaders in background...` 
+          ? `Loading ${remainingMissing} more leaders...` 
           : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

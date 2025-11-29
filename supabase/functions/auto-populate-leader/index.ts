@@ -61,7 +61,17 @@ const POSITION_TO_CONSTITUENCY_TYPE: Record<string, string> = {
   'chief_minister': 'state',
   'mp': 'parliamentary',
   'mla': 'assembly',
-  'ward_councillor': 'assembly' // Use assembly for ward since "ward" is not a valid type
+  'ward_councillor': 'assembly'
+};
+
+// Map position types to hierarchy levels
+const POSITION_TO_HIERARCHY_LEVEL: Record<string, number> = {
+  'prime_minister': 6,
+  'governor': 5,
+  'chief_minister': 4,
+  'mp': 3,
+  'mla': 2,
+  'ward_councillor': 1
 };
 
 Deno.serve(async (req) => {
@@ -79,7 +89,66 @@ Deno.serve(async (req) => {
 
     console.log(`Auto-populating leader for: ${position_type} - ${constituency_name}, ${state}`);
 
-    // Generate leader data using Lovable AI
+    // Use correct hierarchy level from mapping or provided value
+    const correctHierarchyLevel = POSITION_TO_HIERARCHY_LEVEL[position_type] || hierarchy_level || 1;
+
+    // ============================================
+    // STEP 1: CHECK IF LEADER ALREADY EXISTS
+    // ============================================
+    let existingLeaderQuery;
+    
+    if (position_type === 'prime_minister') {
+      // For PM, check by hierarchy level OR designation
+      existingLeaderQuery = await supabase
+        .from('leaders')
+        .select('*')
+        .or('hierarchy_level.eq.6,designation.ilike.%Prime Minister%')
+        .limit(1)
+        .maybeSingle();
+    } else if (position_type === 'governor') {
+      existingLeaderQuery = await supabase
+        .from('leaders')
+        .select('*')
+        .eq('state', state)
+        .or('hierarchy_level.eq.5,designation.ilike.%Governor%')
+        .limit(1)
+        .maybeSingle();
+    } else if (position_type === 'chief_minister') {
+      existingLeaderQuery = await supabase
+        .from('leaders')
+        .select('*')
+        .eq('state', state)
+        .or('hierarchy_level.eq.4,designation.ilike.%Chief Minister%')
+        .limit(1)
+        .maybeSingle();
+    } else {
+      // For MP, MLA, Ward Councillor - check by constituency and hierarchy level
+      existingLeaderQuery = await supabase
+        .from('leaders')
+        .select('*')
+        .eq('hierarchy_level', correctHierarchyLevel)
+        .or(`constituency.ilike.%${constituency_name}%,constituency.eq.${constituency_name}`)
+        .limit(1)
+        .maybeSingle();
+    }
+
+    if (existingLeaderQuery.data) {
+      console.log('Leader already exists in DB:', existingLeaderQuery.data.name);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          leader: existingLeaderQuery.data,
+          cached: true 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('No existing leader found, generating with AI...');
+
+    // ============================================
+    // STEP 2: GENERATE LEADER DATA WITH AI
+    // ============================================
     const aiPrompt = generatePrompt(position_type, constituency_name, state);
     
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -93,10 +162,8 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert on Indian politics with deep knowledge of elected representatives at all levels - from Prime Minister to Ward Councillors. 
+            content: `You are an expert on Indian politics with deep knowledge of elected representatives at all levels.
             
-Provide accurate, factual information about political leaders. If you don't have specific information about a leader, provide realistic placeholder data that matches typical patterns for that position.
-
 IMPORTANT: 
 - Always return valid JSON matching the exact schema requested
 - All numeric values must be WHOLE NUMBERS (integers), not decimals
@@ -214,7 +281,6 @@ IMPORTANT:
     const aiData = await aiResponse.json();
     console.log('AI Response received');
 
-    // Extract the tool call response
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || !toolCall.function?.arguments) {
       console.error('No tool call in response:', JSON.stringify(aiData));
@@ -224,7 +290,7 @@ IMPORTANT:
     const leaderData: LeaderData = JSON.parse(toolCall.function.arguments);
     console.log('Parsed leader data:', leaderData.name);
 
-    // IMPORTANT: Convert all numeric values to integers to avoid DB errors
+    // Sanitize numeric values
     const sanitizedLeaderData = {
       ...leaderData,
       attendance: Math.round(Number(leaderData.attendance) || 0),
@@ -250,7 +316,7 @@ IMPORTANT:
 
     // Create or get constituency
     let finalConstituencyId = constituency_id;
-    if (!finalConstituencyId) {
+    if (!finalConstituencyId && position_type !== 'prime_minister') {
       const { data: existingConstituency } = await supabase
         .from('constituencies')
         .select('id')
@@ -273,14 +339,15 @@ IMPORTANT:
 
         if (constituencyError) {
           console.error('Error creating constituency:', constituencyError);
-          // Continue without constituency_id - it's not critical
         } else {
           finalConstituencyId = newConstituency?.id;
         }
       }
     }
 
-    // Insert leader into database
+    // ============================================
+    // STEP 3: INSERT LEADER INTO DATABASE
+    // ============================================
     const { data: insertedLeader, error: insertError } = await supabase
       .from('leaders')
       .insert({
@@ -306,7 +373,7 @@ IMPORTANT:
         ongoing_projects: leaderData.ongoing_projects,
         completed_projects: leaderData.completed_projects,
         image_url: imageUrl,
-        hierarchy_level: hierarchy_level,
+        hierarchy_level: correctHierarchyLevel,
         constituency_id: finalConstituencyId,
         constituency: constituency_name,
         state: state
@@ -324,7 +391,8 @@ IMPORTANT:
     return new Response(
       JSON.stringify({ 
         success: true, 
-        leader: insertedLeader 
+        leader: insertedLeader,
+        cached: false
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -351,33 +419,10 @@ function generatePrompt(positionType: string, constituencyName: string, state: s
   return `Provide complete and accurate details about ${positionDescriptions[positionType] || `the political representative for ${constituencyName}, ${state}`}.
 
 IMPORTANT: All numeric values MUST be whole numbers (integers), not decimals!
-- attendance: integer between 0 and 100
-- funds_utilized: integer between 0 and 100
-- questions_raised: integer
-- bills_passed: integer
-- criminal_cases: integer
-- assets: integer (in rupees)
-- total_funds_allocated: integer (in rupees)
 
-Include:
-- Full name and official designation
-- Political party affiliation
-- A brief biography (100-150 words)
-- Educational qualifications
-- Performance metrics: attendance percentage, funds utilization percentage, questions raised
-- Number of bills passed/supported
-- Criminal cases (if any, from public records)
-- Declared assets (approximate in INR)
-- Total funds allocated for their constituency
-- Official contact: email, phone, office address
-- Current work and focus areas
-- Social media handles (Twitter, Facebook, official website)
-- Professional history (previous positions held)
-- Election history (past elections contested with results)
-- 2-3 ongoing development projects with budgets and progress
-- 2-3 completed projects
+Include: Full name, designation, party, bio (100-150 words), education, attendance (0-100), funds_utilized (0-100), questions_raised, bills_passed, criminal_cases, assets (INR), total_funds_allocated (INR), contact details, current work, social media, professional history, election history, ongoing/completed projects.
 
-Use real, verified information where available. For positions where specific data isn't widely known (like ward councillors), provide realistic placeholder data that matches typical patterns for that position in ${state}.`;
+Use real, verified information where available.`;
 }
 
 async function fetchWikipediaImage(name: string): Promise<string | null> {
