@@ -54,6 +54,16 @@ interface LeaderData {
   }>;
 }
 
+// Map position types to valid constituency types in DB
+const POSITION_TO_CONSTITUENCY_TYPE: Record<string, string> = {
+  'prime_minister': 'parliamentary',
+  'governor': 'governor',
+  'chief_minister': 'state',
+  'mp': 'parliamentary',
+  'mla': 'assembly',
+  'ward_councillor': 'assembly' // Use assembly for ward since "ward" is not a valid type
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -87,7 +97,11 @@ Deno.serve(async (req) => {
             
 Provide accurate, factual information about political leaders. If you don't have specific information about a leader, provide realistic placeholder data that matches typical patterns for that position.
 
-IMPORTANT: Always return valid JSON matching the exact schema requested. Do not include any markdown formatting or code blocks.`
+IMPORTANT: 
+- Always return valid JSON matching the exact schema requested
+- All numeric values must be WHOLE NUMBERS (integers), not decimals
+- Attendance and funds_utilized should be integers between 0 and 100
+- Do not include any markdown formatting or code blocks`
           },
           {
             role: 'user',
@@ -108,13 +122,13 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
                   party: { type: 'string', description: 'Political party name' },
                   bio: { type: 'string', description: 'Brief biography (100-150 words)' },
                   education: { type: 'string', description: 'Educational qualifications' },
-                  attendance: { type: 'number', description: 'Attendance percentage (0-100)' },
-                  funds_utilized: { type: 'number', description: 'Funds utilization percentage (0-100)' },
-                  questions_raised: { type: 'number', description: 'Number of questions raised in sessions' },
-                  bills_passed: { type: 'number', description: 'Number of bills passed/supported' },
-                  criminal_cases: { type: 'number', description: 'Number of pending criminal cases' },
-                  assets: { type: 'number', description: 'Declared assets in rupees' },
-                  total_funds_allocated: { type: 'number', description: 'Total funds allocated in rupees' },
+                  attendance: { type: 'integer', description: 'Attendance percentage as whole number (0-100)' },
+                  funds_utilized: { type: 'integer', description: 'Funds utilization percentage as whole number (0-100)' },
+                  questions_raised: { type: 'integer', description: 'Number of questions raised in sessions' },
+                  bills_passed: { type: 'integer', description: 'Number of bills passed/supported' },
+                  criminal_cases: { type: 'integer', description: 'Number of pending criminal cases' },
+                  assets: { type: 'integer', description: 'Declared assets in rupees' },
+                  total_funds_allocated: { type: 'integer', description: 'Total funds allocated in rupees' },
                   office_email: { type: 'string', description: 'Official email address' },
                   office_phone: { type: 'string', description: 'Official phone number' },
                   office_address: { type: 'string', description: 'Office address' },
@@ -145,11 +159,11 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
                     items: {
                       type: 'object',
                       properties: {
-                        year: { type: 'number' },
+                        year: { type: 'integer' },
                         constituency: { type: 'string' },
                         result: { type: 'string' },
-                        votes: { type: 'number' },
-                        margin: { type: 'number' }
+                        votes: { type: 'integer' },
+                        margin: { type: 'integer' }
                       },
                       required: ['year', 'constituency', 'result', 'votes', 'margin']
                     }
@@ -160,8 +174,8 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
                       type: 'object',
                       properties: {
                         name: { type: 'string' },
-                        budget: { type: 'number' },
-                        progress: { type: 'number' },
+                        budget: { type: 'integer' },
+                        progress: { type: 'integer' },
                         description: { type: 'string' }
                       },
                       required: ['name', 'budget', 'progress', 'description']
@@ -173,7 +187,7 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
                       type: 'object',
                       properties: {
                         name: { type: 'string' },
-                        budget: { type: 'number' },
+                        budget: { type: 'integer' },
                         completedDate: { type: 'string' },
                         description: { type: 'string' }
                       },
@@ -210,6 +224,18 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
     const leaderData: LeaderData = JSON.parse(toolCall.function.arguments);
     console.log('Parsed leader data:', leaderData.name);
 
+    // IMPORTANT: Convert all numeric values to integers to avoid DB errors
+    const sanitizedLeaderData = {
+      ...leaderData,
+      attendance: Math.round(Number(leaderData.attendance) || 0),
+      funds_utilized: Math.round(Number(leaderData.funds_utilized) || 0),
+      questions_raised: Math.round(Number(leaderData.questions_raised) || 0),
+      bills_passed: Math.round(Number(leaderData.bills_passed) || 0),
+      criminal_cases: Math.round(Number(leaderData.criminal_cases) || 0),
+      assets: Math.round(Number(leaderData.assets) || 0),
+      total_funds_allocated: Math.round(Number(leaderData.total_funds_allocated) || 0),
+    };
+
     // Try to fetch image from Wikipedia
     let imageUrl = null;
     try {
@@ -218,6 +244,9 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
     } catch (imgError) {
       console.log('Could not fetch Wikipedia image:', imgError);
     }
+
+    // Get the correct constituency type for this position
+    const constituencyType = POSITION_TO_CONSTITUENCY_TYPE[position_type] || 'assembly';
 
     // Create or get constituency
     let finalConstituencyId = constituency_id;
@@ -236,7 +265,7 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
           .from('constituencies')
           .insert({
             name: constituency_name,
-            type: position_type,
+            type: constituencyType,
             state: state
           })
           .select('id')
@@ -244,6 +273,7 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
 
         if (constituencyError) {
           console.error('Error creating constituency:', constituencyError);
+          // Continue without constituency_id - it's not critical
         } else {
           finalConstituencyId = newConstituency?.id;
         }
@@ -254,18 +284,18 @@ IMPORTANT: Always return valid JSON matching the exact schema requested. Do not 
     const { data: insertedLeader, error: insertError } = await supabase
       .from('leaders')
       .insert({
-        name: leaderData.name,
-        designation: leaderData.designation,
-        party: leaderData.party,
-        bio: leaderData.bio,
-        education: leaderData.education,
-        attendance: leaderData.attendance,
-        funds_utilized: leaderData.funds_utilized,
-        questions_raised: leaderData.questions_raised,
-        bills_passed: leaderData.bills_passed,
-        criminal_cases: leaderData.criminal_cases,
-        assets: leaderData.assets,
-        total_funds_allocated: leaderData.total_funds_allocated,
+        name: sanitizedLeaderData.name,
+        designation: sanitizedLeaderData.designation,
+        party: sanitizedLeaderData.party,
+        bio: sanitizedLeaderData.bio,
+        education: sanitizedLeaderData.education,
+        attendance: sanitizedLeaderData.attendance,
+        funds_utilized: sanitizedLeaderData.funds_utilized,
+        questions_raised: sanitizedLeaderData.questions_raised,
+        bills_passed: sanitizedLeaderData.bills_passed,
+        criminal_cases: sanitizedLeaderData.criminal_cases,
+        assets: sanitizedLeaderData.assets,
+        total_funds_allocated: sanitizedLeaderData.total_funds_allocated,
         office_email: leaderData.office_email,
         office_phone: leaderData.office_phone,
         office_address: leaderData.office_address,
@@ -319,6 +349,15 @@ function generatePrompt(positionType: string, constituencyName: string, state: s
   };
 
   return `Provide complete and accurate details about ${positionDescriptions[positionType] || `the political representative for ${constituencyName}, ${state}`}.
+
+IMPORTANT: All numeric values MUST be whole numbers (integers), not decimals!
+- attendance: integer between 0 and 100
+- funds_utilized: integer between 0 and 100
+- questions_raised: integer
+- bills_passed: integer
+- criminal_cases: integer
+- assets: integer (in rupees)
+- total_funds_allocated: integer (in rupees)
 
 Include:
 - Full name and official designation
