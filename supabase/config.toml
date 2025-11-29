@@ -3,11 +3,17 @@ project_id = "lnipztrmhtakrmpxvgri"
 [functions.ai-chat]
 verify_jwt = false
 
+[functions.auto-populate-leader]
+verify_jwt = false
+
 [functions.fetch-leaders]
-verify_jwt = true
+verify_jwt = false
 
 [functions.fetch-local-news]
 verify_jwt = true
+
+[functions.fetch-news]
+verify_jwt = false
 
 [functions.generate-area-report]
 verify_jwt = true
