@@ -217,6 +217,33 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_polls: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          poll_date: string
+          question: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          poll_date?: string
+          question: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          poll_date?: string
+          question?: string
+        }
+        Relationships: []
+      }
       leader_activities: {
         Row: {
           activity_date: string | null
@@ -451,6 +478,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      poll_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          pincode: string
+          poll_id: string
+          response: boolean
+          user_id: string
+          ward: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          pincode: string
+          poll_id: string
+          response: boolean
+          user_id: string
+          ward?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          pincode?: string
+          poll_id?: string
+          response?: boolean
+          user_id?: string
+          ward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_responses_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "daily_polls"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       poll_votes: {
         Row: {
@@ -748,6 +813,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ward_weekly_scores: {
+        Row: {
+          calculated_at: string | null
+          city: string
+          cleanliness_score: number | null
+          id: string
+          overall_score: number | null
+          pincode: string
+          prev_rank: number | null
+          rank: number | null
+          rank_change: number | null
+          roads_score: number | null
+          safety_score: number | null
+          state: string
+          total_alerts: number | null
+          total_confirmations: number | null
+          total_responses: number | null
+          ward: string
+          water_score: number | null
+          week_number: number
+          year: number
+        }
+        Insert: {
+          calculated_at?: string | null
+          city: string
+          cleanliness_score?: number | null
+          id?: string
+          overall_score?: number | null
+          pincode: string
+          prev_rank?: number | null
+          rank?: number | null
+          rank_change?: number | null
+          roads_score?: number | null
+          safety_score?: number | null
+          state: string
+          total_alerts?: number | null
+          total_confirmations?: number | null
+          total_responses?: number | null
+          ward: string
+          water_score?: number | null
+          week_number: number
+          year: number
+        }
+        Update: {
+          calculated_at?: string | null
+          city?: string
+          cleanliness_score?: number | null
+          id?: string
+          overall_score?: number | null
+          pincode?: string
+          prev_rank?: number | null
+          rank?: number | null
+          rank_change?: number | null
+          roads_score?: number | null
+          safety_score?: number | null
+          state?: string
+          total_alerts?: number | null
+          total_confirmations?: number | null
+          total_responses?: number | null
+          ward?: string
+          water_score?: number | null
+          week_number?: number
+          year?: number
+        }
+        Relationships: []
       }
     }
     Views: {

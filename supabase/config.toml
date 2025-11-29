@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.auto-populate-leader]
 verify_jwt = false
 
+[functions.calculate-ward-scores]
+verify_jwt = false
+
 [functions.fetch-leaders]
 verify_jwt = false
 

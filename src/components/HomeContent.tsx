@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { AreaReportCard } from "./AreaReportCard";
 import { AreaAlertsList } from "./AreaAlertsList";
 import { CreateAlertDialog } from "./CreateAlertDialog";
+import { DailyPollCard } from "./DailyPollCard";
 
 interface AreaDetails {
   currentWork: string;
@@ -217,6 +218,9 @@ export const HomeContent = () => {
 
   return (
     <div className="space-y-6">
+      {/* Daily Polls */}
+      <DailyPollCard />
+
       {/* My Leaders */}
       <div>
         <h2 className="text-lg font-semibold mb-4">My Leaders</h2>

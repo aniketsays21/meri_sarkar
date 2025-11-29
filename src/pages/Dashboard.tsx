@@ -10,14 +10,17 @@ import {
   Users2,
   Newspaper,
   Calculator,
+  Trophy,
 } from "lucide-react";
 import { HomeContent } from "@/components/HomeContent";
 import { LeadersContent } from "@/components/LeadersContent";
 import { ImpactContent } from "@/components/ImpactContent";
 import { CommunityContent } from "@/components/CommunityContent";
 import { NewsContent } from "@/components/NewsContent";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("home");
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
@@ -130,14 +133,20 @@ const Dashboard = () => {
         <div className="flex items-center justify-around h-16 max-w-[430px] mx-auto">
           {[
             { id: "home", icon: Home, label: "Home" },
+            { id: "board", icon: Trophy, label: "Board", isLink: true, path: "/board" },
             { id: "leaders", icon: Users, label: "Leaders" },
-            { id: "impact", icon: Calculator, label: "Impact" },
             { id: "community", icon: Users2, label: "Community" },
             { id: "news", icon: Newspaper, label: "News" },
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                if (tab.isLink && tab.path) {
+                  navigate(tab.path);
+                } else {
+                  setActiveTab(tab.id);
+                }
+              }}
               className={`flex flex-col items-center gap-1 transition-smooth ${
                 activeTab === tab.id ? "text-primary" : "text-muted-foreground"
               }`}
