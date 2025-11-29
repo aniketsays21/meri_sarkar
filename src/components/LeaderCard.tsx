@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, DollarSign } from "lucide-react";
@@ -21,6 +22,8 @@ interface LeaderCardProps {
 }
 
 const LeaderCard = ({ leader, onClick }: LeaderCardProps) => {
+  const [imageError, setImageError] = useState(false);
+
   const getScoreColor = (score: number) => {
     if (score >= 8) return "bg-score-excellent text-white";
     if (score >= 6.5) return "bg-score-good text-white";
@@ -37,17 +40,45 @@ const LeaderCard = ({ leader, onClick }: LeaderCardProps) => {
     return "Needs Work";
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const getPartyColor = (party: string) => {
+    const partyLower = party?.toLowerCase() || "";
+    if (partyLower.includes("bjp")) return "bg-orange-500";
+    if (partyLower.includes("congress") || partyLower.includes("inc")) return "bg-blue-500";
+    if (partyLower.includes("aap")) return "bg-cyan-500";
+    if (partyLower.includes("tmc")) return "bg-green-600";
+    if (partyLower.includes("sp")) return "bg-red-500";
+    return "bg-primary";
+  };
+
   return (
     <Card
       onClick={onClick}
       className="p-5 shadow-card hover:shadow-card-hover transition-smooth cursor-pointer active:scale-[0.98]"
     >
       <div className="flex items-start gap-4 mb-4">
-        <img
-          src={leader.image}
-          alt={leader.name}
-          className="w-16 h-16 rounded-2xl bg-muted object-cover"
-        />
+        {!imageError && leader.image ? (
+          <img
+            src={leader.image}
+            alt={leader.name}
+            className="w-16 h-16 rounded-2xl bg-muted object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div
+            className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-lg ${getPartyColor(leader.party)}`}
+          >
+            {getInitials(leader.name)}
+          </div>
+        )}
         <div className="flex-1">
           <h3 className="font-display font-bold text-lg mb-1">
             {leader.name}
