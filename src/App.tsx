@@ -12,6 +12,7 @@ import RoomDetail from "./pages/RoomDetail";
 import MohallaPerformanceBoard from "./pages/MohallaPerformanceBoard";
 import CityRankings from "./pages/CityRankings";
 import WardDetail from "./pages/WardDetail";
+import WardComparison from "./pages/WardComparison";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/room/:id" element={<RoomDetail />} />
           <Route path="/board" element={<MohallaPerformanceBoard />} />
           <Route path="/rankings" element={<CityRankings />} />
+          <Route path="/compare" element={<WardComparison />} />
           <Route path="/ward/:id" element={<WardDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
