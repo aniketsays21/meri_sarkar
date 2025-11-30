@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Share2, Trophy, Award } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Trophy, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ShareableAreaCard } from "@/components/ShareableAreaCard";
 
 interface WardScore {
   id: string;
@@ -123,15 +124,6 @@ export default function MohallaPerformanceBoard() {
     return icons[category];
   };
 
-  const handleShare = () => {
-    const text = `Check out this week's Area Performance Board! ${userWard ? `My area ranked #${userWard.rank}` : 'See how your area is performing'}`;
-    if (navigator.share) {
-      navigator.share({ title: "Area Performance Board", text });
-    } else {
-      navigator.clipboard.writeText(text);
-      toast({ title: "Copied to clipboard!" });
-    }
-  };
 
   if (loading) {
     return (
@@ -162,9 +154,7 @@ export default function MohallaPerformanceBoard() {
               </h1>
               <p className="text-xs text-muted-foreground">Week {getWeekNumber(new Date())}, {new Date().getFullYear()}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleShare}>
-              <Share2 className="h-5 w-5" />
-            </Button>
+            <div className="w-10" />
           </div>
         </div>
       </div>
@@ -193,12 +183,27 @@ export default function MohallaPerformanceBoard() {
                   <p className="text-lg font-semibold text-primary">{userWard.overall_score}/100</p>
                 </div>
               </div>
-              <Button 
-                className="w-full mt-4" 
-                onClick={() => navigate(`/ward/${userWard.id}`)}
-              >
-                View Details
-              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  className="flex-1" 
+                  onClick={() => navigate(`/ward/${userWard.id}`)}
+                >
+                  View Details
+                </Button>
+                <ShareableAreaCard
+                  ward={userWard.ward}
+                  city={userWard.city}
+                  rank={userWard.rank}
+                  totalAreas={scores.length}
+                  overallScore={userWard.overall_score}
+                  rankChange={userWard.rank_change}
+                  cleanliness={userWard.cleanliness_score}
+                  water={userWard.water_score}
+                  roads={userWard.roads_score}
+                  safety={userWard.safety_score}
+                  pincode={userWard.pincode}
+                />
+              </div>
             </CardContent>
           </Card>
         )}
