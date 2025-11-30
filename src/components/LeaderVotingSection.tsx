@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { User } from "lucide-react";
+import { User, Calendar } from "lucide-react";
 import { Card } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { LeaderVotingCard } from "./LeaderVotingCard";
+import { getWeek, getYear, startOfWeek, endOfWeek, format } from "date-fns";
 
 interface Leader {
   id: string;
@@ -34,8 +34,15 @@ export const LeaderVotingSection = () => {
   const [loading, setLoading] = useState(true);
   const [voteCounts, setVoteCounts] = useState<Record<string, VoteCounts>>({});
   const [userVotes, setUserVotes] = useState<Record<string, UserVotes>>({});
-  const [isVoting, setIsVoting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Get current week info
+  const now = new Date();
+  const currentWeek = getWeek(now);
+  const currentYear = getYear(now);
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const weekRange = `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
 
   useEffect(() => {
     fetchLeaders();
@@ -63,7 +70,6 @@ export const LeaderVotingSection = () => {
           table: 'leader_category_votes'
         },
         () => {
-          // Refresh vote counts on any change
           fetchVoteCounts();
         }
       )
@@ -111,13 +117,15 @@ export const LeaderVotingSection = () => {
 
   const fetchVoteCounts = async () => {
     try {
+      // Get all votes for the current week to show community totals
       const { data, error } = await supabase
         .from("leader_category_votes")
-        .select("leader_id, category, vote_type");
+        .select("leader_id, category, vote_type")
+        .eq("week_number", currentWeek)
+        .eq("year", currentYear);
 
       if (error) throw error;
 
-      // Aggregate vote counts per leader per category
       const counts: Record<string, VoteCounts> = {};
       
       leaders.forEach(leader => {
@@ -146,10 +154,13 @@ export const LeaderVotingSection = () => {
     if (!userId) return;
 
     try {
+      // Only get user's votes for the current week
       const { data, error } = await supabase
         .from("leader_category_votes")
         .select("leader_id, category, vote_type")
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("week_number", currentWeek)
+        .eq("year", currentYear);
 
       if (error) throw error;
 
@@ -168,95 +179,15 @@ export const LeaderVotingSection = () => {
     }
   };
 
-  const handleVote = async (leaderId: string, category: Category, voteType: VoteType) => {
-    if (!userId) {
-      toast.error("Please login to vote");
-      return;
-    }
-
-    setIsVoting(true);
-    
-    const currentVote = userVotes[leaderId]?.[category];
-
-    try {
-      if (currentVote === voteType) {
-        // Remove vote (toggle off)
-        const { error } = await supabase
-          .from("leader_category_votes")
-          .delete()
-          .eq("user_id", userId)
-          .eq("leader_id", leaderId)
-          .eq("category", category);
-
-        if (error) throw error;
-
-        // Update local state
-        setUserVotes(prev => {
-          const updated = { ...prev };
-          if (updated[leaderId]) {
-            delete updated[leaderId][category];
-          }
-          return updated;
-        });
-      } else if (currentVote) {
-        // Change vote
-        const { error } = await supabase
-          .from("leader_category_votes")
-          .update({ vote_type: voteType })
-          .eq("user_id", userId)
-          .eq("leader_id", leaderId)
-          .eq("category", category);
-
-        if (error) throw error;
-
-        // Update local state
-        setUserVotes(prev => ({
-          ...prev,
-          [leaderId]: {
-            ...prev[leaderId],
-            [category]: voteType
-          }
-        }));
-      } else {
-        // New vote
-        const { error } = await supabase
-          .from("leader_category_votes")
-          .insert({
-            user_id: userId,
-            leader_id: leaderId,
-            category,
-            vote_type: voteType
-          });
-
-        if (error) throw error;
-
-        // Update local state
-        setUserVotes(prev => ({
-          ...prev,
-          [leaderId]: {
-            ...prev[leaderId],
-            [category]: voteType
-          }
-        }));
-      }
-
-      // Refresh vote counts
-      fetchVoteCounts();
-    } catch (error: any) {
-      console.error("Error voting:", error);
-      toast.error("Failed to submit vote");
-    } finally {
-      setIsVoting(false);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Rate Your Leaders</h2>
-        <div className="space-y-4">
-          {[1, 2].map(i => (
-            <Skeleton key={i} className="h-48 w-full rounded-lg" />
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Rate Your Leaders</h2>
+        </div>
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-64 w-[200px] rounded-lg flex-shrink-0" />
           ))}
         </div>
       </div>
@@ -265,7 +196,7 @@ export const LeaderVotingSection = () => {
 
   if (leaders.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <h2 className="text-lg font-semibold">Rate Your Leaders</h2>
         <Card className="p-5">
           <div className="flex items-center gap-4">
@@ -283,23 +214,25 @@ export const LeaderVotingSection = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Header with week info */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Rate Your Leaders</h2>
-        <span className="text-xs text-muted-foreground">
-          Vote on issues in your area
-        </span>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Week {currentWeek}: {weekRange}</span>
+        </div>
       </div>
       
-      <div className="space-y-4">
+      {/* Horizontal scroll container */}
+      <div className="flex gap-4 overflow-x-auto pb-2 -mx-6 px-6 scrollbar-hide">
         {leaders.map(leader => (
           <LeaderVotingCard
             key={leader.id}
             leader={leader}
             voteCounts={voteCounts[leader.id] || { safety: { up: 0, down: 0 }, roads: { up: 0, down: 0 }, water: { up: 0, down: 0 } }}
             userVotes={userVotes[leader.id] || {}}
-            onVote={handleVote}
-            isVoting={isVoting}
+            variant="compact"
           />
         ))}
       </div>
