@@ -63,6 +63,22 @@ export const LeaderVotingCard = ({
 
   const hasVotedThisWeek = Object.keys(userVotes).length > 0;
 
+  const calculateOverallScore = () => {
+    const totalUp = voteCounts.safety.up + voteCounts.roads.up + voteCounts.water.up;
+    const totalDown = voteCounts.safety.down + voteCounts.roads.down + voteCounts.water.down;
+    const total = totalUp + totalDown;
+    if (total === 0) return 50;
+    return Math.round((totalUp / total) * 100);
+  };
+
+  const overallScore = calculateOverallScore();
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return "text-green-600";
+    if (score >= 50) return "text-orange-600";
+    return "text-red-600";
+  };
+
   // Compact variant for horizontal scroll on home
   if (variant === "compact") {
     return (
@@ -80,6 +96,14 @@ export const LeaderVotingCard = ({
             <div>
               <h3 className="font-semibold text-sm truncate max-w-[160px]">{leader.name}</h3>
               <p className="text-xs text-muted-foreground truncate max-w-[160px]">{leader.designation}</p>
+            </div>
+
+            {/* Overall Approval Score */}
+            <div className="flex flex-col items-center gap-1 py-2 px-4 bg-muted/50 rounded-lg w-full">
+              <p className="text-xs text-muted-foreground">Approval Rating</p>
+              <p className={cn("text-2xl font-bold", getScoreColor(overallScore))}>
+                {overallScore}%
+              </p>
             </div>
             
             {/* Category percentages */}
