@@ -271,17 +271,7 @@ export const HomeContent = () => {
 
       {/* My Area Report */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">My Area Report</h2>
-          <Button
-            onClick={() => setCreateAlertOpen(true)}
-            size="sm"
-            className="gap-2 bg-orange-600 hover:bg-orange-700"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            Alert My Area
-          </Button>
-        </div>
+        <h2 className="text-lg font-semibold">My Area Report</h2>
 
         {loadingReport ? (
           <div className="space-y-4">
@@ -500,6 +490,18 @@ export const HomeContent = () => {
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* Floating Alert Button */}
+      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 w-full max-w-[430px]">
+        <Button
+          onClick={() => setCreateAlertOpen(true)}
+          size="lg"
+          className="w-full gap-3 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 shadow-lg hover:shadow-xl transition-all text-base font-semibold py-6"
+        >
+          <AlertTriangle className="w-5 h-5" />
+          Alert My Area
+        </Button>
       </div>
     </div>
   );
