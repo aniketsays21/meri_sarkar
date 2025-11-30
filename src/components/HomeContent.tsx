@@ -13,6 +13,7 @@ import { CreateAlertDialog } from "./CreateAlertDialog";
 import { DailyPollCard } from "./DailyPollCard";
 import { LeaderVotingSection } from "./LeaderVotingSection";
 import { TodaysPulseSection } from "./TodaysPulseSection";
+import { CityRankingsPreview } from "./CityRankingsPreview";
 
 interface AreaDetails {
   currentWork: string;
@@ -323,6 +324,9 @@ export const HomeContent = () => {
 
       {/* Today's Pulse */}
       <TodaysPulseSection />
+
+      {/* City Rankings */}
+      <CityRankingsPreview />
 
       {/* Policies for You */}
       <div>
