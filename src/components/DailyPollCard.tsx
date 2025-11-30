@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, TrendingUp } from "lucide-react";
+import { ThumbsUp, ThumbsDown, TrendingUp, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getWeek, startOfWeek, endOfWeek, format } from "date-fns";
 
 interface Poll {
   id: string;
@@ -160,13 +161,26 @@ export const DailyPollCard = () => {
 
   if (polls.length === 0) return null;
 
+  // Get current week info
+  const now = new Date();
+  const currentWeek = getWeek(now);
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const weekRange = `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d")}`;
+
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          Today's Quick Polls
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Today's Quick Polls
+          </CardTitle>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Week {currentWeek}: {weekRange}</span>
+          </div>
+        </div>
         <p className="text-sm text-muted-foreground">
           Help your area climb the rankings! 🏆
         </p>
