@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, TrendingUp, AlertTriangle, BarChart3, Calendar } from "lucide-react";
+import { ArrowLeft, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { AlertDetailDialog } from "@/components/AlertDetailDialog";
+import { TopPerformersSection } from "@/components/TopPerformersSection";
 
 interface Alert {
   id: string;
@@ -44,7 +42,6 @@ export default function MohallaPerformanceBoard() {
   const [loading, setLoading] = useState(true);
   const [nearbyAreas, setNearbyAreas] = useState<AreaOption[]>([]);
   const [selectedArea, setSelectedArea] = useState<string>("");
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchUserData();
@@ -364,50 +361,8 @@ export default function MohallaPerformanceBoard() {
           </CardContent>
         </Card>
 
-        {/* Today's Pulse */}
-        <Card className="border-primary/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              📊 TODAY'S PULSE
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">Happy ratio in your area</p>
-          </CardHeader>
-          <CardContent>
-            {pollStats.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No poll responses yet today
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {pollStats.map((stat) => {
-                  const status = getStatusIndicator(stat.percentageUnhappy);
-                  const happyPercentage = 100 - stat.percentageUnhappy;
-                  return (
-                    <div key={stat.category} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{getCategoryIcon(stat.category)}</span>
-                          <span className="font-medium capitalize">{getCategoryLabel(stat.category)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-lg ${status.color}`}>{status.icon}</span>
-                          <span className="text-sm font-semibold">
-                            {stat.percentageUnhappy}% unhappy
-                          </span>
-                        </div>
-                      </div>
-                      <Progress value={stat.percentageUnhappy} className="h-2" />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{happyPercentage}% happy ({stat.yesCount} people)</span>
-                        <span>{stat.percentageUnhappy}% unhappy ({stat.noCount} people)</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Top Performers */}
+        <TopPerformersSection />
 
         {/* View City Rankings Button */}
         <Button 

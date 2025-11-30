@@ -12,6 +12,7 @@ import { AreaAlertsList } from "./AreaAlertsList";
 import { CreateAlertDialog } from "./CreateAlertDialog";
 import { DailyPollCard } from "./DailyPollCard";
 import { LeaderVotingSection } from "./LeaderVotingSection";
+import { TodaysPulseSection } from "./TodaysPulseSection";
 
 interface AreaDetails {
   currentWork: string;
@@ -243,44 +244,6 @@ export const HomeContent = () => {
 
         {/* Area Alerts Section */}
         {userPincode && <AreaAlertsList pincode={userPincode} />}
-
-        {/* Key Issues & Recent Developments */}
-        {areaReport && (
-          <div className="grid gap-3">
-            {areaReport.key_issues && areaReport.key_issues.length > 0 && (
-              <Card className="p-4">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-orange-500" />
-                  Key Issues
-                </h3>
-                <ul className="space-y-2">
-                  {areaReport.key_issues.map((issue, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-orange-500 mt-1">•</span>
-                      {issue}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-            
-            {areaReport.recent_developments && areaReport.recent_developments.length > 0 && (
-              <Card className="p-4">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  ✅ Recent Developments
-                </h3>
-                <ul className="space-y-2">
-                  {areaReport.recent_developments.map((dev, index) => (
-                    <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                      <span className="text-green-500 mt-1">•</span>
-                      {dev}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Create Alert Dialog */}
@@ -355,8 +318,11 @@ export const HomeContent = () => {
               </div>
             </div>
           )}
-        </DialogContent>
+      </DialogContent>
       </Dialog>
+
+      {/* Today's Pulse */}
+      <TodaysPulseSection />
 
       {/* Policies for You */}
       <div>

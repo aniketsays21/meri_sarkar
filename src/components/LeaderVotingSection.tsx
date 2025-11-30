@@ -71,6 +71,9 @@ export const LeaderVotingSection = () => {
         },
         () => {
           fetchVoteCounts();
+          if (userId) {
+            fetchUserVotes();
+          }
         }
       )
       .subscribe();
@@ -78,7 +81,7 @@ export const LeaderVotingSection = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId]);
 
   const checkAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -117,7 +120,6 @@ export const LeaderVotingSection = () => {
 
   const fetchVoteCounts = async () => {
     try {
-      // Get all votes for the current week to show community totals
       const { data, error } = await supabase
         .from("leader_category_votes")
         .select("leader_id, category, vote_type")
@@ -154,7 +156,6 @@ export const LeaderVotingSection = () => {
     if (!userId) return;
 
     try {
-      // Only get user's votes for the current week
       const { data, error } = await supabase
         .from("leader_category_votes")
         .select("leader_id, category, vote_type")
@@ -176,6 +177,13 @@ export const LeaderVotingSection = () => {
       setUserVotes(votes);
     } catch (error) {
       console.error("Error fetching user votes:", error);
+    }
+  };
+
+  const handleVoteComplete = () => {
+    fetchVoteCounts();
+    if (userId) {
+      fetchUserVotes();
     }
   };
 
@@ -233,6 +241,7 @@ export const LeaderVotingSection = () => {
             voteCounts={voteCounts[leader.id] || { safety: { up: 0, down: 0 }, roads: { up: 0, down: 0 }, water: { up: 0, down: 0 } }}
             userVotes={userVotes[leader.id] || {}}
             variant="compact"
+            onVoteComplete={handleVoteComplete}
           />
         ))}
       </div>

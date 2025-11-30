@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LeaderVotingFull } from "@/components/LeaderVotingFull";
 import {
   ArrowLeft,
   Share2,
@@ -187,11 +186,6 @@ const LeaderDetail = () => {
             {score}/10
           </div>
         </div>
-      </div>
-
-      {/* Weekly Voting Section */}
-      <div className="px-6 mb-6">
-        <LeaderVotingFull leaderId={leader.id} />
       </div>
 
       {/* About Section */}
