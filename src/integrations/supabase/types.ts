@@ -293,6 +293,8 @@ export type Database = {
           leader_id: string
           user_id: string
           vote_type: string
+          week_number: number
+          year: number
         }
         Insert: {
           category: string
@@ -301,6 +303,8 @@ export type Database = {
           leader_id: string
           user_id: string
           vote_type: string
+          week_number?: number
+          year?: number
         }
         Update: {
           category?: string
@@ -309,6 +313,8 @@ export type Database = {
           leader_id?: string
           user_id?: string
           vote_type?: string
+          week_number?: number
+          year?: number
         }
         Relationships: [
           {

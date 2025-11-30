@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { ThumbsUp, ThumbsDown, Shield, Route, Droplets, ChevronRight } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Shield, Route, Droplets, ChevronRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VoteCounts {
@@ -30,8 +29,9 @@ interface LeaderVotingCardProps {
   leader: Leader;
   voteCounts: VoteCounts;
   userVotes: UserVotes;
-  onVote: (leaderId: string, category: "safety" | "roads" | "water", voteType: "up" | "down") => void;
+  onVote?: (leaderId: string, category: "safety" | "roads" | "water", voteType: "up" | "down") => void;
   isVoting?: boolean;
+  variant?: "compact" | "full";
 }
 
 const CATEGORIES = [
@@ -45,7 +45,8 @@ export const LeaderVotingCard = ({
   voteCounts, 
   userVotes, 
   onVote,
-  isVoting = false 
+  isVoting = false,
+  variant = "full"
 }: LeaderVotingCardProps) => {
   const navigate = useNavigate();
 
@@ -55,6 +56,68 @@ export const LeaderVotingCard = ({
     return Math.round((up / total) * 100);
   };
 
+  const hasVotedThisWeek = Object.keys(userVotes).length > 0;
+
+  // Compact variant for horizontal scroll on home
+  if (variant === "compact") {
+    return (
+      <Card 
+        className="p-4 min-w-[200px] w-[200px] flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => navigate(`/leader/${leader.id}`)}
+      >
+        <div className="flex flex-col items-center text-center gap-3">
+          <img
+            src={leader.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.name}`}
+            alt={leader.name}
+            className="w-16 h-16 rounded-full object-cover ring-2 ring-border"
+          />
+          <div>
+            <h3 className="font-semibold text-sm truncate max-w-[160px]">{leader.name}</h3>
+            <p className="text-xs text-muted-foreground truncate max-w-[160px]">{leader.designation}</p>
+          </div>
+          
+          {/* Category percentages */}
+          <div className="w-full space-y-2">
+            {CATEGORIES.map(({ key, label, icon: Icon, color, bgColor }) => {
+              const counts = voteCounts[key];
+              const percentage = getVotePercentage(counts.up, counts.down);
+              
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <Icon className={cn("w-3 h-3", color)} />
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={cn("h-full transition-all", bgColor)}
+                      style={{ width: `${percentage}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium w-8 text-right">{percentage}%</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Vote status */}
+          <div className={cn(
+            "text-xs px-2 py-1 rounded-full",
+            hasVotedThisWeek 
+              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+              : "bg-primary/10 text-primary"
+          )}>
+            {hasVotedThisWeek ? (
+              <span className="flex items-center gap-1">
+                <Check className="w-3 h-3" /> Voted
+              </span>
+            ) : (
+              "Tap to vote →"
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Full variant for leader detail page
   return (
     <Card className="p-4 space-y-4">
       {/* Leader Info Header */}
@@ -110,8 +173,8 @@ export const LeaderVotingCard = ({
                       ? "bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400" 
                       : "hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
                   )}
-                  onClick={() => onVote(leader.id, key, "down")}
-                  disabled={isVoting}
+                  onClick={() => onVote?.(leader.id, key, "down")}
+                  disabled={isVoting || !onVote}
                 >
                   <ThumbsDown className="w-3.5 h-3.5" />
                   <span className="text-xs font-medium min-w-[20px]">{counts.down}</span>
@@ -137,8 +200,8 @@ export const LeaderVotingCard = ({
                       ? "bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400" 
                       : "hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20"
                   )}
-                  onClick={() => onVote(leader.id, key, "up")}
-                  disabled={isVoting}
+                  onClick={() => onVote?.(leader.id, key, "up")}
+                  disabled={isVoting || !onVote}
                 >
                   <ThumbsUp className="w-3.5 h-3.5" />
                   <span className="text-xs font-medium min-w-[20px]">{counts.up}</span>
