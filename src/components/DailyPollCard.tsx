@@ -63,7 +63,6 @@ export const DailyPollCard = () => {
       .from("daily_polls")
       .select("*")
       .eq("is_active", true)
-      .eq("poll_date", new Date().toISOString().split('T')[0])
       .order("category")
       .limit(2);
 
