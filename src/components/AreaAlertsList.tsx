@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Droplet, Trash2, AlertCircle, User, Car, ThumbsUp } from "lucide-react";
+import { AlertTriangle, Droplet, Trash2, AlertCircle, User, Car, ThumbsUp, ThumbsDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { AlertDetailDialog } from "./AlertDetailDialog";
@@ -286,16 +286,33 @@ export const AreaAlertsList = ({ pincode }: AreaAlertsListProps) => {
                     <span>👥 {alert.upvotes} {alert.upvotes === 1 ? "person" : "people"} affected</span>
                   </div>
                 </div>
-                <Button
-                  variant={alert.hasUpvoted ? "default" : "outline"}
-                  size="sm"
-                  onClick={(e) => handleUpvote(alert, e)}
-                  disabled={upvoting === alert.id}
-                  className="w-full gap-2"
-                >
-                  <ThumbsUp className="w-3 h-3" />
-                  {alert.hasUpvoted ? "You're affected" : "I'm affected too"}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant={alert.hasUpvoted ? "default" : "outline"}
+                    size="sm"
+                    onClick={(e) => handleUpvote(alert, e)}
+                    disabled={upvoting === alert.id}
+                    className="gap-2"
+                  >
+                    <ThumbsUp className="w-3 h-3" />
+                    {alert.hasUpvoted ? "Affected" : "I'm affected"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast({
+                        title: "Noted",
+                        description: "Thanks for the feedback",
+                      });
+                    }}
+                    className="gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <ThumbsDown className="w-3 h-3" />
+                    Not affected
+                  </Button>
+                </div>
               </div>
             );
           })}
