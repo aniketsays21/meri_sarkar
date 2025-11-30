@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, User, Calculator, ArrowRight, RefreshCw, AlertCircle, AlertTriangle } from "lucide-react";
+import { Calculator, ArrowRight, RefreshCw, AlertCircle, AlertTriangle } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Skeleton } from "./ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +11,7 @@ import { AreaReportCard } from "./AreaReportCard";
 import { AreaAlertsList } from "./AreaAlertsList";
 import { CreateAlertDialog } from "./CreateAlertDialog";
 import { DailyPollCard } from "./DailyPollCard";
+import { LeaderVotingSection } from "./LeaderVotingSection";
 
 interface AreaDetails {
   currentWork: string;
@@ -61,7 +61,6 @@ interface AreaReport {
 export const HomeContent = () => {
   const navigate = useNavigate();
   const [selectedMetric, setSelectedMetric] = useState<AreaMetric | null>(null);
-  const [mlaLeader, setMlaLeader] = useState<any[]>([]);
   const [areaReport, setAreaReport] = useState<AreaReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -71,7 +70,6 @@ export const HomeContent = () => {
 
   useEffect(() => {
     fetchUserInfo();
-    fetchMLA();
     fetchAreaReport();
   }, []);
 
@@ -92,31 +90,6 @@ export const HomeContent = () => {
       }
     } catch (error) {
       console.error("Error fetching user info:", error);
-    }
-  };
-
-  const fetchMLA = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("pincode")
-        .eq("user_id", user.id)
-        .single();
-
-      const pincode = profile?.pincode || "560029";
-
-      const { data } = await supabase.functions.invoke("fetch-leaders", {
-        body: { pincode }
-      });
-
-      if (data?.leaders) {
-        setMlaLeader(data.leaders);
-      }
-    } catch (error) {
-      console.error("Error fetching leaders:", error);
     }
   };
 
@@ -221,53 +194,8 @@ export const HomeContent = () => {
       {/* Daily Polls */}
       <DailyPollCard />
 
-      {/* My Leaders */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4">My Leaders</h2>
-        {mlaLeader && mlaLeader.length > 0 ? (
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
-            {mlaLeader.map((leader: any) => (
-              <Card
-                key={leader.id}
-                className="flex-shrink-0 w-[280px] p-5 hover:shadow-lg transition-all cursor-pointer snap-center"
-                onClick={() => navigate(`/leader/${leader.id}`)}
-              >
-                <div className="flex items-center gap-4 mb-3">
-                  <img
-                    src={leader.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.name}`}
-                    alt={leader.name}
-                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base mb-1 truncate">{leader.name}</h3>
-                    <Badge variant="outline" className="text-xs mb-1">{leader.designation}</Badge>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  {leader.party && (
-                    <div className="px-2 py-0.5 rounded-full bg-primary/10">
-                      <span className="text-xs font-medium text-primary">{leader.party}</span>
-                    </div>
-                  )}
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center flex-shrink-0">
-                <User className="w-8 h-8 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base mb-1">Loading...</h3>
-                <p className="text-sm text-muted-foreground">Fetching your leaders</p>
-              </div>
-            </div>
-          </Card>
-        )}
-      </div>
+      {/* Rate Your Leaders - New Voting Section */}
+      <LeaderVotingSection />
 
       {/* My Area Report */}
       <div className="space-y-4">

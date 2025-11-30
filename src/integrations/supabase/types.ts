@@ -285,6 +285,41 @@ export type Database = {
           },
         ]
       }
+      leader_category_votes: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          leader_id: string
+          user_id: string
+          vote_type: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          leader_id: string
+          user_id: string
+          vote_type: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          leader_id?: string
+          user_id?: string
+          vote_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leader_category_votes_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "leaders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leaders: {
         Row: {
           assets: number | null
