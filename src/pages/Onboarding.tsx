@@ -53,25 +53,30 @@ const Onboarding = () => {
     }
 
     setLocationLoading(true);
-    
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          
+
           // Use reverse geocoding to get pincode
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
           );
-          
+
           if (!response.ok) {
             throw new Error("Failed to fetch location");
           }
-          
+
           const data = await response.json();
           const postcode = data.address?.postcode;
-          const area = data.address?.suburb || data.address?.neighbourhood || data.address?.city_district || data.address?.city || "";
-          
+          const area =
+            data.address?.suburb ||
+            data.address?.neighbourhood ||
+            data.address?.city_district ||
+            data.address?.city ||
+            "";
+
           if (postcode && postcode.length === 6) {
             setPincode(postcode);
             setDetectedLocation(area);
@@ -106,20 +111,23 @@ const Onboarding = () => {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 0
-      }
+        maximumAge: 0,
+      },
     );
   };
 
   const handlePincodeSubmit = async () => {
     if (pincode.length !== 6) return;
-    
+
     setLoading(true);
     try {
       // For now, we'll create an anonymous user session
       // In production, you'd use proper authentication with the phone/OTP
-      const { data: { user }, error: authError } = await supabase.auth.signInAnonymously();
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.signInAnonymously();
+
       if (authError) {
         toast.error("Failed to create session");
         console.error("Auth error:", authError);
@@ -134,17 +142,15 @@ const Onboarding = () => {
       }
 
       // Save user profile to database
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: user.id,
-          name,
-          phone,
-          age: parseInt(age),
-          gender,
-          pincode,
-          occupation,
-        });
+      const { error: profileError } = await supabase.from("profiles").insert({
+        user_id: user.id,
+        name,
+        phone,
+        age: parseInt(age),
+        gender,
+        pincode,
+        occupation,
+      });
 
       if (profileError) {
         toast.error("Failed to save profile");
@@ -169,11 +175,9 @@ const Onboarding = () => {
       <div className="gradient-hero p-6 pb-12 rounded-b-[2rem]">
         <div className="flex items-center justify-center gap-3 text-white mb-4">
           <Vote className="w-10 h-10" />
-          <h1 className="text-3xl font-display font-bold">Neta Watch</h1>
+          <h1 className="text-3xl font-display font-bold">Meri Sarkar</h1>
         </div>
-        <p className="text-white/90 text-center text-sm">
-          Democracy in your pocket
-        </p>
+        <p className="text-white/90 text-center text-sm">Hyperlocal Social Politics</p>
       </div>
 
       {/* Progress Dots */}
@@ -182,11 +186,7 @@ const Onboarding = () => {
           <div
             key={dot}
             className={`h-2 rounded-full transition-smooth ${
-              dot === step
-                ? "w-8 bg-primary"
-                : dot < step
-                ? "w-2 bg-accent"
-                : "w-2 bg-muted"
+              dot === step ? "w-8 bg-primary" : dot < step ? "w-2 bg-accent" : "w-2 bg-muted"
             }`}
           />
         ))}
@@ -197,12 +197,8 @@ const Onboarding = () => {
         {step === 1 && (
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
-              <h2 className="text-2xl font-display font-bold mb-2">
-                Let's get started
-              </h2>
-              <p className="text-muted-foreground">
-                Enter your phone number to continue
-              </p>
+              <h2 className="text-2xl font-display font-bold mb-2">Let's get started</h2>
+              <p className="text-muted-foreground">Enter your phone number to continue</p>
             </div>
 
             <div className="space-y-4">
@@ -238,12 +234,8 @@ const Onboarding = () => {
         {step === 2 && (
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
-              <h2 className="text-2xl font-display font-bold mb-2">
-                Enter OTP
-              </h2>
-              <p className="text-muted-foreground">
-                We've sent a code to {phone}
-              </p>
+              <h2 className="text-2xl font-display font-bold mb-2">Enter OTP</h2>
+              <p className="text-muted-foreground">We've sent a code to {phone}</p>
             </div>
 
             <div className="space-y-4">
@@ -264,9 +256,7 @@ const Onboarding = () => {
                 Verify OTP
               </Button>
 
-              <button className="w-full text-primary text-sm font-medium">
-                Resend OTP
-              </button>
+              <button className="w-full text-primary text-sm font-medium">Resend OTP</button>
             </div>
           </div>
         )}
@@ -274,12 +264,8 @@ const Onboarding = () => {
         {step === 3 && (
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
-              <h2 className="text-2xl font-display font-bold mb-2">
-                Tell us about yourself
-              </h2>
-              <p className="text-muted-foreground">
-                Help us personalize your experience
-              </p>
+              <h2 className="text-2xl font-display font-bold mb-2">Tell us about yourself</h2>
+              <p className="text-muted-foreground">Help us personalize your experience</p>
             </div>
 
             <div className="space-y-6">
@@ -342,12 +328,8 @@ const Onboarding = () => {
         {step === 4 && (
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
-              <h2 className="text-2xl font-display font-bold mb-2">
-                What do you do?
-              </h2>
-              <p className="text-muted-foreground">
-                This helps us find relevant policies for you
-              </p>
+              <h2 className="text-2xl font-display font-bold mb-2">What do you do?</h2>
+              <p className="text-muted-foreground">This helps us find relevant policies for you</p>
             </div>
 
             <div className="space-y-3">
@@ -367,10 +349,7 @@ const Onboarding = () => {
                     className="flex items-center space-x-3 p-4 rounded-2xl border border-input bg-background hover:bg-accent/5 transition-smooth"
                   >
                     <RadioGroupItem value={option.value} id={option.value} />
-                    <Label
-                      htmlFor={option.value}
-                      className="flex-1 cursor-pointer text-base"
-                    >
+                    <Label htmlFor={option.value} className="flex-1 cursor-pointer text-base">
                       {option.label}
                     </Label>
                   </div>
@@ -391,12 +370,8 @@ const Onboarding = () => {
         {step === 5 && (
           <div className="animate-in fade-in slide-in-from-right duration-300">
             <div className="mb-8">
-              <h2 className="text-2xl font-display font-bold mb-2">
-                Where do you live?
-              </h2>
-              <p className="text-muted-foreground">
-                This helps us find your leaders
-              </p>
+              <h2 className="text-2xl font-display font-bold mb-2">Where do you live?</h2>
+              <p className="text-muted-foreground">This helps us find your leaders</p>
             </div>
 
             <div className="space-y-4">
@@ -445,7 +420,9 @@ const Onboarding = () => {
               {detectedLocation && pincode && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-accent/10 rounded-xl text-sm">
                   <MapPin className="w-4 h-4 text-accent" />
-                  <span className="text-foreground">Detected: <strong>{detectedLocation}</strong></span>
+                  <span className="text-foreground">
+                    Detected: <strong>{detectedLocation}</strong>
+                  </span>
                 </div>
               )}
 
@@ -464,12 +441,10 @@ const Onboarding = () => {
                   <Vote className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold mb-1">
-                    What you'll discover
-                  </h3>
+                  <h3 className="font-display font-bold mb-1">What you'll discover</h3>
                   <p className="text-sm text-muted-foreground">
-                    Meet your 5 leaders who control ₹250+ crores of your area's
-                    budget. Track their work, hold them accountable.
+                    Meet your 5 leaders who control ₹250+ crores of your area's budget. Track their work, hold them
+                    accountable.
                   </p>
                 </div>
               </div>
