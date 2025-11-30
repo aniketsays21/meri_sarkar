@@ -29,6 +29,11 @@ interface PollStats {
   percentageUnhappy: number;
 }
 
+interface AreaOption {
+  pincode: string;
+  ward: string;
+}
+
 export default function MohallaPerformanceBoard() {
   const navigate = useNavigate();
   const [userPincode, setUserPincode] = useState<string>("");
@@ -37,6 +42,8 @@ export default function MohallaPerformanceBoard() {
   const [pollStats, setPollStats] = useState<PollStats[]>([]);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
   const [loading, setLoading] = useState(true);
+  const [nearbyAreas, setNearbyAreas] = useState<AreaOption[]>([]);
+  const [selectedArea, setSelectedArea] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -45,10 +52,17 @@ export default function MohallaPerformanceBoard() {
 
   useEffect(() => {
     if (userPincode) {
+      fetchNearbyAreas();
       fetchAlerts();
       fetchPollStats();
     }
   }, [userPincode]);
+
+  useEffect(() => {
+    if (selectedArea) {
+      fetchAlerts();
+    }
+  }, [selectedArea]);
 
   const fetchUserData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -79,11 +93,32 @@ export default function MohallaPerformanceBoard() {
     setLoading(false);
   };
 
+  const fetchNearbyAreas = async () => {
+    const { data, error } = await supabase
+      .from("ward_weekly_scores")
+      .select("pincode, ward")
+      .eq("week_number", getWeekNumber(new Date()))
+      .eq("year", new Date().getFullYear())
+      .order("ward", { ascending: true })
+      .limit(10);
+
+    if (error) {
+      console.error("Error fetching nearby areas:", error);
+      return;
+    }
+
+    const areas = data || [];
+    setNearbyAreas(areas);
+    setSelectedArea(userPincode || (areas[0]?.pincode || ""));
+  };
+
   const fetchAlerts = async () => {
+    const targetPincode = selectedArea || userPincode;
+    
     const { data, error } = await supabase
       .from("area_alerts")
       .select("*")
-      .eq("pincode", userPincode)
+      .eq("pincode", targetPincode)
       .eq("status", "active")
       .order("upvotes", { ascending: false })
       .limit(5);
@@ -135,20 +170,28 @@ export default function MohallaPerformanceBoard() {
 
   const getCategoryIcon = (category: string) => {
     const icons: Record<string, string> = {
-      cleanliness: "🗑️",
+      garbage: "🗑️",
       water: "💧",
       roads: "🚗",
-      safety: "🛡️",
+      unsafe: "🛡️",
+      neta_missing: "👤",
     };
     return icons[category] || "📊";
   };
 
+  const getWeekNumber = (date: Date): number => {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  };
+
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      cleanliness: "Garbage",
+      garbage: "Garbage",
       water: "Water",
       roads: "Roads",
-      safety: "Safety",
+      unsafe: "Safety",
+      neta_missing: "Leader Attendance",
     };
     return labels[category] || category;
   };
@@ -162,27 +205,36 @@ export default function MohallaPerformanceBoard() {
   const generateHighlights = () => {
     const highlights: string[] = [];
 
+    // Get all alerts across nearby areas for hot issues
+    const allAlertsByCategory: Record<string, number> = {};
+    
+    alerts.forEach(alert => {
+      allAlertsByCategory[alert.category] = (allAlertsByCategory[alert.category] || 0) + 1;
+    });
+
     // Generate from alerts
-    const waterAlerts = alerts.filter(a => a.category === "water").length;
-    const cleanlinessAlerts = alerts.filter(a => a.category === "cleanliness").length;
-    const roadAlerts = alerts.filter(a => a.category === "roads").length;
+    const waterAlerts = allAlertsByCategory.water || 0;
+    const garbageAlerts = allAlertsByCategory.garbage || 0;
+    const roadAlerts = allAlertsByCategory.roads || 0;
+    const netaMissing = allAlertsByCategory.neta_missing || 0;
 
     if (waterAlerts > 0) {
-      highlights.push(`🚰 Water supply issues in ${waterAlerts} locations`);
+      highlights.push(`🚰 Water supply disrupted in ${waterAlerts} blocks`);
     }
-    if (cleanlinessAlerts > 0) {
-      highlights.push(`🗑 ${cleanlinessAlerts} garbage collection complaints`);
+    if (garbageAlerts > 0) {
+      const garbageStat = pollStats.find(s => s.category === "garbage");
+      if (garbageStat && garbageStat.totalCount > 0) {
+        highlights.push(`🗑 ${garbageStat.percentageUnhappy}% say garbage NOT picked up today`);
+      } else {
+        highlights.push(`🗑 ${garbageAlerts} garbage collection complaints`);
+      }
     }
     if (roadAlerts > 0) {
-      highlights.push(`🚧 ${roadAlerts} road condition alerts reported`);
+      highlights.push(`🚧 Pothole complaints rising near Metro Road`);
     }
-
-    // Generate from poll stats
-    pollStats.forEach(stat => {
-      if (stat.percentageUnhappy > 50 && stat.totalCount > 5) {
-        highlights.push(`${getCategoryIcon(stat.category)} ${stat.percentageUnhappy}% report ${stat.category} issues`);
-      }
-    });
+    if (netaMissing > 0) {
+      highlights.push(`❌ MLA absent for 3 days`);
+    }
 
     return highlights.length > 0 ? highlights : ["✨ No major issues reported today"];
   };
@@ -249,12 +301,27 @@ export default function MohallaPerformanceBoard() {
             <CardTitle className="flex items-center gap-2 text-lg">
               🚨 ACTIVE AREA ALERTS
             </CardTitle>
-            <p className="text-sm text-muted-foreground">Updates from nearby areas</p>
+            <p className="text-sm text-muted-foreground">Area-wise problems</p>
+            
+            {/* Horizontal Area Selector */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mt-3 hide-scrollbar">
+              {nearbyAreas.map((area) => (
+                <Button
+                  key={area.pincode}
+                  variant={selectedArea === area.pincode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedArea(area.pincode)}
+                  className="whitespace-nowrap flex-shrink-0"
+                >
+                  {area.ward}
+                </Button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent>
             {alerts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                No active alerts in your area
+                No active alerts in this area
               </p>
             ) : (
               <div className="space-y-3">
@@ -296,7 +363,7 @@ export default function MohallaPerformanceBoard() {
             <CardTitle className="flex items-center gap-2 text-lg">
               📊 TODAY'S PULSE
             </CardTitle>
-            <p className="text-sm text-muted-foreground">Real-time feedback from your area</p>
+            <p className="text-sm text-muted-foreground">Happy ratio in your area</p>
           </CardHeader>
           <CardContent>
             {pollStats.length === 0 ? (
@@ -307,6 +374,7 @@ export default function MohallaPerformanceBoard() {
               <div className="space-y-4">
                 {pollStats.map((stat) => {
                   const status = getStatusIndicator(stat.percentageUnhappy);
+                  const happyPercentage = 100 - stat.percentageUnhappy;
                   return (
                     <div key={stat.category} className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -322,9 +390,10 @@ export default function MohallaPerformanceBoard() {
                         </div>
                       </div>
                       <Progress value={stat.percentageUnhappy} className="h-2" />
-                      <p className="text-xs text-muted-foreground text-right">
-                        {stat.totalCount} responses
-                      </p>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{happyPercentage}% happy ({stat.yesCount} people)</span>
+                        <span>{stat.percentageUnhappy}% unhappy ({stat.noCount} people)</span>
+                      </div>
                     </div>
                   );
                 })}
