@@ -308,6 +308,14 @@ export default function CityRankings() {
             </CardContent>
           </Card>
         )}
+
+        <Button 
+          className="w-full" 
+          size="lg"
+          onClick={() => navigate("/compare")}
+        >
+          Compare Wards
+        </Button>
       </div>
     </div>
   );

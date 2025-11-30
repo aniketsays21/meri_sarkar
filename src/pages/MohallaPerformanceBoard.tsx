@@ -217,23 +217,30 @@ export default function MohallaPerformanceBoard() {
     const garbageAlerts = allAlertsByCategory.garbage || 0;
     const roadAlerts = allAlertsByCategory.roads || 0;
     const netaMissing = allAlertsByCategory.neta_missing || 0;
+    const unsafeAlerts = allAlertsByCategory.unsafe || 0;
+
+    // Get nearby ward name for context
+    const nearbyWard = nearbyAreas.find(a => a.pincode !== userPincode)?.ward || "nearby area";
 
     if (waterAlerts > 0) {
-      highlights.push(`🚰 Water supply disrupted in ${waterAlerts} blocks`);
+      highlights.push(`🚰 Water supply disrupted in ${waterAlerts} locations since morning`);
     }
     if (garbageAlerts > 0) {
-      const garbageStat = pollStats.find(s => s.category === "garbage");
+      const garbageStat = pollStats.find(s => s.category === "cleanliness");
       if (garbageStat && garbageStat.totalCount > 0) {
-        highlights.push(`🗑 ${garbageStat.percentageUnhappy}% say garbage NOT picked up today`);
+        highlights.push(`🗑 ${garbageStat.percentageUnhappy}% residents say garbage NOT picked up today`);
       } else {
-        highlights.push(`🗑 ${garbageAlerts} garbage collection complaints`);
+        highlights.push(`🗑 ${garbageAlerts} garbage collection complaints in your area`);
       }
     }
     if (roadAlerts > 0) {
-      highlights.push(`🚧 Pothole complaints rising near Metro Road`);
+      highlights.push(`🚧 Road problems reported in ${nearbyWard} - potholes near Metro Road`);
+    }
+    if (unsafeAlerts > 0) {
+      highlights.push(`⚠️ ${unsafeAlerts} safety concerns raised - street lights not working`);
     }
     if (netaMissing > 0) {
-      highlights.push(`❌ MLA absent for 3 days`);
+      highlights.push(`❌ MLA office closed for 3 days - no response to calls`);
     }
 
     return highlights.length > 0 ? highlights : ["✨ No major issues reported today"];
